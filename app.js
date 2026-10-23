@@ -20,6 +20,8 @@ const pendingDialog = document.querySelector('#pending-dialog');
 const tableMessage = document.querySelector('#table-message');
 const salesBody = document.querySelector('#sales-body');
 const salesChart = document.querySelector('#sales-chart');
+let salesChartRange = 'month';
+let salesChartMetric = 'revenue';
 const salePreview = document.querySelector('#sale-preview');
 const monthSelect = document.querySelector('#month-select');
 const previousMonthButton = document.querySelector('#previous-month');
@@ -715,7 +717,10 @@ function resetWalletForm() {
   document.querySelector('#wallet-transaction-id').value = '';
   document.querySelector('#wallet-date').value = currentDateKey();
   document.querySelector('#wallet-form-title').textContent = 'Agregar ingreso o gasto';
-  document.querySelector('#wallet-save').textContent = 'Guardar movimiento';
+  document.querySelector('#wallet-type').value = 'income';
+  document.querySelector('#wallet-save-income').hidden = false;
+  document.querySelector('#wallet-save-expense').hidden = false;
+  document.querySelector('#wallet-save').hidden = true;
   document.querySelector('#wallet-cancel').hidden = true;
   setMessage(document.querySelector('#wallet-message'));
 }
@@ -727,7 +732,9 @@ function editWalletTransaction(item) {
   document.querySelector('#wallet-description').value = item.description;
   document.querySelector('#wallet-amount').value = Number(item.amount).toFixed(2);
   document.querySelector('#wallet-form-title').textContent = 'Editar movimiento';
-  document.querySelector('#wallet-save').textContent = 'Guardar cambios';
+  document.querySelector('#wallet-save-income').hidden = true;
+  document.querySelector('#wallet-save-expense').hidden = true;
+  document.querySelector('#wallet-save').hidden = false;
   document.querySelector('#wallet-cancel').hidden = false;
   setMessage(document.querySelector('#wallet-message'));
   walletForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -830,101 +837,302 @@ function formatDate(value) {
 
 function renderSalesChart(sales, monthKey) {
   salesChart.replaceChildren();
-  const dailyTotals = new Map();
+  const [year, month] = monthKey.split('-').map(Number);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const aggregates = new Map();
   for (const sale of sales) {
-    dailyTotals.set(sale.sale_date, (dailyTotals.get(sale.sale_date) || 0) + Number(sale.total));
+    const row = aggregates.get(sale.sale_date) || { revenue: 0, operations: 0, units: 0 };
+    row.revenue += Number(sale.total);
+    row.operations += 1;
+    row.units += Number(sale.quantity);
+    aggregates.set(sale.sale_date, row);
   }
-  const days = Array.from({ length: 31 }, (_, index) => {
+  const monthDays = Array.from({ length: daysInMonth }, (_, index) => {
     const day = index + 1;
     const date = `${monthKey}-${String(day).padStart(2, '0')}`;
-    return { day, date, total: dailyTotals.get(date) || 0 };
+    return { day, date, ...(aggregates.get(date) || { revenue: 0, operations: 0, units: 0 }) };
   });
-  const firstSalesDay = days.find(({ total }) => total > 0)?.day;
-  const lastSalesDay = [...days].reverse().find(({ total }) => total > 0)?.day;
-
-  const maximum = Math.max(...days.map(({ total }) => total));
-  const scaleMaximum = maximum || 1000;
-  const rawStep = scaleMaximum / 6;
-  const magnitude = 10 ** Math.floor(Math.log10(rawStep || 1));
-  const normalizedStep = rawStep / magnitude;
-  const niceUnit = normalizedStep <= 1 ? 1 : normalizedStep <= 2 ? 2 : normalizedStep <= 2.5 ? 2.5 : normalizedStep <= 5 ? 5 : 10;
-  const step = niceUnit * magnitude;
-  const tickCount = Math.max(1, Math.floor(scaleMaximum / step) + 1);
-  const chartMaximum = step * tickCount;
+  const today = new Date();
+  const daysElapsed = monthKey === currentMonthKey() ? Math.min(today.getDate(), daysInMonth) : daysInMonth;
+  const periodEnd = monthKey === currentMonthKey() ? daysElapsed : daysInMonth;
+  const periodDays = salesChartRange === '7d' ? 7 : salesChartRange === '14d' ? 14 : periodEnd;
+  const days = monthDays.slice(Math.max(0, periodEnd - periodDays), periodEnd);
+  const valueKey = salesChartMetric;
+  const valueName = valueKey === 'revenue' ? 'Ingresos' : 'Unidades';
+  const unit = valueKey === 'revenue' ? 'CUP' : 'unidades';
+  const valueOf = (day) => Number(day[valueKey] || 0);
+  const formatValue = (value) => valueKey === 'revenue' ? formatCup(value) : `${Number(value).toLocaleString('es', { maximumFractionDigits: 1 })} ${Number(value) === 1 ? 'unidad' : 'unidades'}`;
+  const sum = days.reduce((total, day) => total + valueOf(day), 0);
+  const average = sum / Math.max(days.length, 1);
+  const peak = days.reduce((best, day) => valueOf(day) > valueOf(best) ? day : best, days[0]);
+  let selectedDay = peak?.day || days.at(-1)?.day || 1;
+  const values = days.map(valueOf);
+  const minimum = Math.min(...values, average);
+  const maximum = Math.max(...values, average);
+  const deviation = Math.max(Math.abs(maximum - average), Math.abs(average - minimum), average * .12, valueKey === 'revenue' ? 1 : .5);
+  const domainMin = Math.max(0, average - deviation * 1.18);
+  const domainMax = average === 0 ? 1 : average + deviation * 1.18;
+  const domainRange = Math.max(domainMax - domainMin, 1);
+  const plotTop = 19;
+  const plotBottom = 204;
+  const plotHeight = plotBottom - plotTop;
+  const volumeTop = 238;
+  const volumeBottom = 286;
+  const volumeHeight = volumeBottom - volumeTop;
+  const averageY = plotTop + ((domainMax - average) / domainRange) * plotHeight;
+  const maxOperations = Math.max(1, ...days.map((day) => day.operations));
+  const points = days.map((day, index) => ({
+    ...day,
+    value: valueOf(day),
+    x: ((index + .5) / days.length) * 1000,
+    y: plotTop + ((domainMax - valueOf(day)) / domainRange) * plotHeight,
+  }));
   const scroll = document.createElement('div');
   scroll.className = 'chart-scroll';
+  const chart = document.createElement('div');
+  chart.className = 'market-chart';
   const layout = document.createElement('div');
   layout.className = 'chart-layout';
-  const axis = document.createElement('div');
-  axis.className = 'chart-y-axis';
-  axis.setAttribute('aria-hidden', 'true');
-  for (let index = 0; index <= tickCount; index += 1) {
-    const tick = document.createElement('span');
-    tick.textContent = `CUP ${Number(step * index).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    tick.style.bottom = `${(index / tickCount) * 100}%`;
-    if (index === 0) tick.classList.add('axis-min');
-    if (index === tickCount) tick.classList.add('axis-max');
-    axis.append(tick);
-  }
-
   const main = document.createElement('div');
   main.className = 'chart-main';
   const plot = document.createElement('div');
   plot.className = 'chart-plot-area';
-  plot.setAttribute('role', 'list');
-  plot.setAttribute('aria-label', 'Ventas por día en CUP');
-  const grid = document.createElement('div');
-  grid.className = 'chart-grid';
-  for (let index = 0; index <= tickCount; index += 1) {
-    const line = document.createElement('span');
-    line.className = 'chart-gridline';
-    line.style.bottom = `${(index / tickCount) * 100}%`;
-    grid.append(line);
+  plot.setAttribute('role', 'group');
+  plot.setAttribute('aria-label', `${valueName} diarios de ${monthLabel(monthKey)}; comparación con el promedio del periodo`);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('market-chart-svg');
+  svg.setAttribute('viewBox', '0 0 1000 300');
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('aria-hidden', 'true');
+  const defs = document.createElementNS(svg.namespaceURI, 'defs');
+  for (const [id, color] of [['up', '#10c98a'], ['down', '#ff4d5b']]) {
+    const gradient = document.createElementNS(svg.namespaceURI, 'linearGradient');
+    gradient.id = `sales-${id}-gradient`;
+    gradient.setAttribute('x1', '0'); gradient.setAttribute('y1', '0');
+    gradient.setAttribute('x2', '0'); gradient.setAttribute('y2', '1');
+    for (const [offset, opacity] of [['0%', '.24'], ['100%', '.015']]) {
+      const stop = document.createElementNS(svg.namespaceURI, 'stop');
+      stop.setAttribute('offset', offset); stop.setAttribute('stop-color', color); stop.setAttribute('stop-opacity', opacity); gradient.append(stop);
+    }
+    defs.append(gradient);
   }
+  const makeSvg = (tag, className, attrs = {}) => {
+    const element = document.createElementNS(svg.namespaceURI, tag);
+    element.classList.add(...className.trim().split(/\s+/).filter(Boolean));
+    for (const [name, value] of Object.entries(attrs)) element.setAttribute(name, String(value));
+    return element;
+  };
+  for (let index = 0; index <= 4; index += 1) {
+    const y = plotTop + (plotHeight / 4) * index;
+    svg.append(makeSvg('line', 'market-gridline', { x1: 0, x2: 1000, y1: y, y2: y }));
+  }
+  svg.prepend(defs);
+  const splitSegments = [];
+  for (let index = 1; index < points.length; index += 1) {
+    const start = points[index - 1];
+    const end = points[index];
+    const startDelta = start.value - average;
+    const endDelta = end.value - average;
+    const startSide = startDelta >= 0 ? 'up' : 'down';
+    if ((startDelta < 0 && endDelta > 0) || (startDelta > 0 && endDelta < 0)) {
+      const fraction = startDelta / (startDelta - endDelta);
+      const crossing = { x: start.x + (end.x - start.x) * fraction, y: averageY };
+      splitSegments.push({ side: startSide, points: [start, crossing] });
+      splitSegments.push({ side: endDelta >= 0 ? 'up' : 'down', points: [crossing, end] });
+    } else {
+      splitSegments.push({ side: endDelta < 0 ? 'down' : startSide, points: [start, end] });
+    }
+  }
+  for (const [segmentIndex, { side, points: segment }] of splitSegments.entries()) {
+    const [start, end] = segment;
+    const baselineArea = makeSvg('path', `market-area market-${side}`, {
+      d: `M ${start.x} ${averageY} L ${start.x} ${start.y} L ${end.x} ${end.y} L ${end.x} ${averageY} Z`,
+    });
+    baselineArea.setAttribute('fill', `url(#sales-${side}-gradient)`);
+    const segmentLine = makeSvg('path', `market-line market-${side}`, {
+      d: `M ${start.x} ${start.y} L ${end.x} ${end.y}`,
+    });
+    segmentLine.setAttribute('pathLength', '50');
+    segmentLine.style.animationDelay = `${Math.min(segmentIndex * 20, 600)}ms`;
+    svg.append(baselineArea, segmentLine);
+  }
+  svg.append(makeSvg('line', 'market-average-line', { x1: 0, x2: 1000, y1: averageY, y2: averageY }));
+  svg.append(makeSvg('line', 'market-volume-divider', { x1: 0, x2: 1000, y1: 224, y2: 224 }));
+  const volumeGroup = makeSvg('g', 'market-volume-bars');
+  const barWidth = Math.min(28, Math.max(3, 760 / days.length));
+  for (const point of points) {
+    const height = point.operations ? Math.max(2, (point.operations / maxOperations) * volumeHeight) : 0;
+    if (height) volumeGroup.append(makeSvg('rect', 'market-volume-bar', {
+      x: point.x - barWidth / 2, y: volumeBottom - height, width: barWidth, height, rx: Math.min(2, barWidth / 3),
+    }));
+  }
+  svg.append(volumeGroup);
+  const selectedPoint = points.find((point) => point.day === selectedDay);
+  const crosshair = makeSvg('line', 'market-crosshair', {
+    x1: selectedPoint.x, x2: selectedPoint.x, y1: plotTop, y2: volumeBottom,
+  });
+  svg.append(crosshair);
+  const peakPoint = points.find((point) => point.day === peak?.day);
+  if (peakPoint && valueOf(peak) > 0) svg.append(makeSvg('circle', 'market-peak-ring', { cx: peakPoint.x, cy: peakPoint.y, r: 5 }));
   const columns = document.createElement('div');
   columns.className = 'chart-columns';
   columns.style.gridTemplateColumns = `repeat(${days.length}, minmax(0, 1fr))`;
-  for (const { day, date, total } of days) {
+  const liveReadout = document.createElement('div');
+  liveReadout.className = 'chart-live-readout';
+  liveReadout.setAttribute('aria-live', 'polite');
+  const readoutLabel = document.createElement('span');
+  readoutLabel.className = 'chart-readout-label';
+  const readoutDate = document.createElement('span');
+  readoutDate.className = 'chart-readout-date';
+  const readoutAmount = document.createElement('strong');
+  const readoutTrend = document.createElement('span');
+  readoutTrend.className = 'chart-readout-trend';
+  liveReadout.append(readoutLabel, readoutDate, readoutAmount, readoutTrend);
+  for (const { day, date, revenue, operations, units } of days) {
     const column = document.createElement('div');
     column.className = 'chart-column';
-    column.setAttribute('role', 'listitem');
-    if (total > 0) {
-      column.classList.add('has-sales');
-      if (day === firstSalesDay) column.classList.add('first-sales-day');
-      if (day === lastSalesDay) column.classList.add('last-sales-day');
-      column.setAttribute('aria-label', `Día ${day}: ${formatCup(total)}`);
-      column.tabIndex = 0;
-      column.dataset.tooltip = `Día ${day} · ${formatCup(total)}`;
-    } else {
-      column.setAttribute('aria-hidden', 'true');
+    const value = valueKey === 'revenue' ? revenue : units;
+    const aboveAverage = value >= average;
+    column.classList.add(value === 0 ? 'is-empty' : aboveAverage ? 'is-up' : 'is-down');
+    if (day === peak?.day && value > 0) column.classList.add('is-peak');
+    const marker = document.createElement('button');
+    marker.type = 'button';
+    marker.className = 'market-day-hit';
+    marker.dataset.day = String(day);
+    marker.tabIndex = day === selectedDay ? 0 : -1;
+    marker.setAttribute('aria-label', `${date.split('-').reverse().join('/')}: ${formatValue(value)}; ${value >= average ? 'por encima' : 'por debajo'} del promedio ${formatValue(average)}`);
+    if (day === selectedDay) column.classList.add('is-selected');
+    const setActiveDay = (targetDay, moveFocus = false) => {
+      selectedDay = Math.max(days[0].day, Math.min(days.at(-1).day, targetDay));
+      const dateEntry = days.find((item) => item.day === selectedDay);
+      const activeValue = valueOf(dateEntry);
+      readoutLabel.textContent = selectedDay === peak?.day && valueOf(peak) > 0 ? 'PICO DEL PERIODO' : valueName.toUpperCase();
+      readoutDate.textContent = new Intl.DateTimeFormat('es', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' })
+        .format(new Date(`${dateEntry.date}T00:00:00Z`)).replaceAll('.', '').toLocaleUpperCase('es');
+      readoutAmount.textContent = formatValue(activeValue);
+      readoutAmount.classList.toggle('is-up', activeValue >= average);
+      readoutAmount.classList.toggle('is-down', activeValue < average);
+      readoutTrend.textContent = `${activeValue >= average ? '▲' : '▼'} ${formatValue(Math.abs(activeValue - average))} ${activeValue >= average ? 'sobre' : 'bajo'} el promedio`;
+      crosshair.setAttribute('x1', points[selectedDay - days[0].day].x);
+      crosshair.setAttribute('x2', points[selectedDay - days[0].day].x);
+      for (const button of columns.querySelectorAll('.market-day-hit')) {
+        const isSelected = Number(button.dataset.day) === selectedDay;
+        button.tabIndex = isSelected ? 0 : -1;
+        button.parentElement.classList.toggle('is-selected', isSelected);
+      }
+      if (moveFocus) columns.querySelector(`[data-day="${selectedDay}"]`)?.focus();
+    };
+    marker.addEventListener('pointerenter', () => setActiveDay(day));
+    marker.addEventListener('focus', () => setActiveDay(day));
+    marker.addEventListener('click', () => setActiveDay(day));
+    marker.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setActiveDay(day + (event.key === 'ArrowRight' ? 1 : -1), true);
+      }
+      if (event.key === 'Home' || event.key === 'End') {
+        event.preventDefault();
+        setActiveDay(event.key === 'Home' ? days[0].day : days.at(-1).day, true);
+      }
+    });
+    if (day === selectedDay) {
+      readoutLabel.textContent = selectedDay === peak?.day && valueOf(peak) > 0 ? 'PICO DEL PERIODO' : valueName.toUpperCase();
+      readoutDate.textContent = new Intl.DateTimeFormat('es', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' })
+        .format(new Date(`${date}T00:00:00Z`)).replaceAll('.', '').toLocaleUpperCase('es');
+      readoutAmount.textContent = formatValue(value);
+      readoutAmount.classList.add(aboveAverage ? 'is-up' : 'is-down');
+      readoutTrend.textContent = `${aboveAverage ? '▲' : '▼'} ${formatValue(Math.abs(value - average))} ${aboveAverage ? 'sobre' : 'bajo'} el promedio`;
     }
-    const bar = document.createElement('div');
-    bar.className = 'chart-bar';
-    const barHeight = total ? (total / chartMaximum) * 100 : 0;
-    bar.style.height = `${barHeight}%`;
-    column.style.setProperty('--bar-height', `${barHeight}%`);
-    if (total && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const delay = Math.min((day - 1) * 12, 360);
-      bar.classList.add('chart-bar-animated');
-      bar.style.animationDelay = `${delay}ms, ${delay + 560}ms`;
-    }
-    column.append(bar);
+    column.append(marker);
     columns.append(column);
   }
-  plot.append(grid, columns);
+  const volumeLabel = document.createElement('span');
+  volumeLabel.className = 'volume-caption';
+  volumeLabel.textContent = 'VOLUMEN · OPERACIONES';
+  plot.append(svg, columns, liveReadout, volumeLabel);
   const dates = document.createElement('div');
   dates.className = 'chart-x-axis';
   dates.style.gridTemplateColumns = `repeat(${days.length}, minmax(0, 1fr))`;
-  for (const { day } of days) {
+  for (const [index, { day }] of days.entries()) {
     const label = document.createElement('span');
     label.className = 'chart-x-label';
-    label.textContent = String(day);
+    const step = days.length <= 8 ? 1 : days.length <= 15 ? 2 : 5;
+    label.textContent = index === 0 || index === days.length - 1 || day % step === 0 ? String(day) : '';
     dates.append(label);
   }
   main.append(plot, dates);
-  layout.append(axis, main);
+  const axis = document.createElement('div');
+  axis.className = 'chart-y-axis';
+  axis.setAttribute('aria-hidden', 'true');
+  for (let index = 0; index <= 4; index += 1) {
+    const tickValue = domainMax - (domainRange / 4) * index;
+    const tick = document.createElement('span');
+    tick.textContent = valueKey === 'revenue'
+      ? Number(tickValue).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 })
+      : Number(tickValue).toLocaleString('en-US', { maximumFractionDigits: 1 });
+    tick.style.top = `${plotTop + (plotHeight / 4) * index}px`;
+    axis.append(tick);
+  }
+  layout.append(main, axis);
   scroll.append(layout);
-  salesChart.append(scroll);
+  const meta = document.createElement('div');
+  meta.className = 'chart-meta';
+  const totalBlock = document.createElement('div');
+  totalBlock.className = 'chart-total-block';
+  const totalLabel = document.createElement('span');
+  totalLabel.className = 'chart-total-label';
+  const rangeCaption = salesChartRange === '7d' ? 'ÚLTIMOS 7 DÍAS' : salesChartRange === '14d' ? 'ÚLTIMOS 14 DÍAS' : 'MES COMPLETO';
+  totalLabel.textContent = `${valueName.toUpperCase()} · ${rangeCaption} · ${monthLabel(monthKey).toLocaleUpperCase('es')}`;
+  const totalValue = document.createElement('strong');
+  totalValue.className = 'chart-total-value';
+  totalValue.textContent = formatValue(sum);
+  totalBlock.append(totalLabel, totalValue);
+  const kpis = document.createElement('div');
+  kpis.className = 'chart-kpis';
+  const addKpi = (label, value, modifier = '') => {
+    const item = document.createElement('div');
+    item.className = `chart-kpi ${modifier}`.trim();
+    const name = document.createElement('span');
+    name.textContent = label;
+    const figure = document.createElement('strong');
+    figure.textContent = value;
+    item.append(name, figure);
+    kpis.append(item);
+  };
+  addKpi('PICO DEL PERIODO', peak && valueOf(peak) > 0 ? `${formatValue(valueOf(peak))} · ${String(peak.day).padStart(2, '0')}/${String(month).padStart(2, '0')}` : '—', 'kpi-peak');
+  addKpi('PROMEDIO DIARIO', formatValue(average), 'kpi-average');
+  addKpi('DÍAS CON VENTA', `${days.filter(({ operations }) => operations > 0).length} / ${days.length}`, 'kpi-active-days');
+  meta.append(totalBlock, kpis);
+  const toolbar = document.createElement('div');
+  toolbar.className = 'market-toolbar';
+  const metricGroup = document.createElement('div');
+  metricGroup.className = 'market-control-group metric-group';
+  for (const [metric, label] of [['revenue', 'Ingresos'], ['units', 'Unidades']]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `market-control${salesChartMetric === metric ? ' is-active' : ''}`;
+    button.textContent = label;
+    button.setAttribute('aria-pressed', String(salesChartMetric === metric));
+    button.addEventListener('click', () => { salesChartMetric = metric; renderSalesChart(sales, monthKey); });
+    metricGroup.append(button);
+  }
+  const rangeGroup = document.createElement('div');
+  rangeGroup.className = 'market-control-group range-group';
+  for (const [range, label] of [['7d', '7D'], ['14d', '14D'], ['month', '1M']]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `market-control${salesChartRange === range ? ' is-active' : ''}`;
+    button.textContent = label;
+    button.setAttribute('aria-pressed', String(salesChartRange === range));
+    button.addEventListener('click', () => { salesChartRange = range; renderSalesChart(sales, monthKey); });
+    rangeGroup.append(button);
+  }
+  toolbar.append(metricGroup, rangeGroup);
+  const legend = document.createElement('div');
+  legend.className = 'chart-legend';
+  legend.innerHTML = `<span><i class="legend-sample legend-up"></i>Sobre el promedio</span><span><i class="legend-sample legend-down"></i>Bajo el promedio</span><span><i class="legend-sample legend-volume"></i>Operaciones</span><span><i class="legend-sample legend-baseline"></i>Promedio ${unit}</span>`;
+  chart.append(meta, toolbar, scroll, legend);
+  salesChart.append(chart);
 }
 
 function previousMonthKey(key) {
@@ -1294,7 +1502,7 @@ async function loadSales() {
   const selectedMonth = monthSelect.value || currentMonthKey();
   const priorMonth = previousMonthKey(selectedMonth);
   const today = currentDateKey();
-  const [currentResult, previousTotalResult, cumulativeResult, generalTotalResult, todaySalesResult] = await Promise.all([
+  const salesQueries = Promise.all([
     supabase.from('sales').select('id, sale_date, product, unit_price, quantity, total, created_at')
       .eq('user_id', businessOwnerId)
       .gte('sale_date', monthStart(selectedMonth)).lt('sale_date', nextMonthStart(selectedMonth))
@@ -1304,6 +1512,28 @@ async function loadSales() {
     fetchSalesTotal(null, null),
     fetchSalesForDate(today),
   ]);
+  const queryTimeout = new Promise((resolve) => setTimeout(() => resolve(null), 30000));
+  const queryResults = await Promise.race([salesQueries, queryTimeout]);
+  if (!queryResults) {
+    salesBody.replaceChildren();
+    document.querySelector('#sales-count').textContent = 'No disponible';
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 6;
+    cell.className = 'loading';
+    cell.textContent = 'Supabase tardó demasiado en responder. Comprueba la conexión y actualiza.';
+    row.append(cell);
+    salesBody.append(row);
+    salesChart.replaceChildren();
+    const notice = document.createElement('p');
+    notice.className = 'message error';
+    notice.setAttribute('role', 'alert');
+    notice.textContent = 'No se pudo dibujar el gráfico porque la consulta de ventas no terminó.';
+    salesChart.append(notice);
+    setMessage(tableMessage, 'La carga de ventas superó los 30 segundos. Actualiza para volver a intentar.', 'error');
+    return;
+  }
+  const [currentResult, previousTotalResult, cumulativeResult, generalTotalResult, todaySalesResult] = queryResults;
   const { data, error } = currentResult;
 
   allTimeSalesLoaded = !generalTotalResult.error;
@@ -1311,12 +1541,35 @@ async function loadSales() {
   renderWallet();
 
   if (error) {
+    salesBody.replaceChildren();
+    document.querySelector('#sales-count').textContent = 'Error al cargar';
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 6;
+    cell.className = 'loading';
+    cell.textContent = 'No se pudieron cargar las ventas; revisa el mensaje de error debajo de la tabla.';
+    row.append(cell);
+    salesBody.append(row);
+    const notice = document.createElement('p');
+    notice.className = 'message error';
+    notice.setAttribute('role', 'alert');
+    notice.textContent = 'El gráfico requiere que Supabase permita consultar la tabla de ventas.';
+    salesChart.replaceChildren(notice);
     setMessage(tableMessage, `No se pudieron cargar las ventas: ${error.message}`, 'error');
     return;
   }
 
   currentMonthSales = data;
-  renderSalesChart(data, selectedMonth);
+  try {
+    renderSalesChart(data, selectedMonth);
+  } catch (chartError) {
+    console.error('No se pudo renderizar el gráfico de ventas:', chartError);
+    const notice = document.createElement('p');
+    notice.className = 'message error';
+    notice.setAttribute('role', 'alert');
+    notice.textContent = `No se pudo dibujar el gráfico (${chartError.message}). Los demás datos de ventas siguen cargándose.`;
+    salesChart.replaceChildren(notice);
+  }
 
   let quantitySum = 0;
   let totalSum = 0;
@@ -1690,6 +1943,7 @@ if (SUPABASE_URL.includes('YOUR_PROJECT_ID') || SUPABASE_PUBLISHABLE_KEY.include
   document.querySelector('#wallet-refresh').addEventListener('click', loadWallet);
   walletForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (event.submitter?.dataset.walletType) document.querySelector('#wallet-type').value = event.submitter.dataset.walletType;
     if (!currentUser || !walletLoaded) {
       setMessage(document.querySelector('#wallet-message'), 'Ejecuta primero supabase/wallet.sql en Supabase > SQL Editor.', 'error');
       return;

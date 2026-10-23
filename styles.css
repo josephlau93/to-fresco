@@ -666,6 +666,493 @@ html[data-theme="dark"] .summary-add-sale{animation-name:action-button-glow}
   .main-tab{font-size:10px}
 }
 
+/* Animated daily sales area chart */
+.chart-meta{display:flex;align-items:center;gap:9px;margin:0 4px 9px;color:#78909d;font-size:10px;font-variant-numeric:tabular-nums}
+.chart-meta>strong{color:#1d4559;font-size:12px;font-weight:850;letter-spacing:.1px}
+.chart-meta-dot{display:inline-block;width:7px;height:7px;margin-right:5px;border-radius:50%;background:#35c4b5;box-shadow:0 0 0 3px rgba(53,196,181,.12);vertical-align:1px}
+.chart-peak-label{margin-left:auto;padding:5px 9px;border:1px solid #e4edf0;border-radius:20px;background:#f7fbfc;color:#6c8995;font-size:9px;font-weight:700}
+.chart-layout{grid-template-columns:64px minmax(0,1fr);width:100%;max-width:none}
+.chart-y-axis{height:236px;min-width:64px;background:transparent;font-size:9px}
+.chart-y-axis span{right:7px}
+.chart-plot-area{height:236px;isolation:isolate;overflow:visible;border:0}
+.chart-grid{z-index:0}
+.chart-gridline{background:linear-gradient(90deg,rgba(91,132,151,.08),rgba(91,132,151,.17) 45%,rgba(91,132,151,.08));}
+.chart-gridline:last-child{opacity:.48}
+.chart-area-svg{position:absolute;inset:0;z-index:1;width:100%;height:100%;overflow:visible;pointer-events:none}
+.chart-area-fill{opacity:0;animation:area-reveal 850ms 680ms ease-out forwards}
+.chart-area-line,.chart-area-glow{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1000;stroke-dashoffset:1000;animation:area-draw 1.5s cubic-bezier(.18,.72,.2,1) forwards}
+.chart-area-line{stroke:#29b9c7;stroke-width:3.2;vector-effect:non-scaling-stroke;filter:drop-shadow(0 2px 4px rgba(23,157,177,.25))}
+.chart-area-glow{stroke:#70e4dc;stroke-width:8;opacity:.24;vector-effect:non-scaling-stroke;filter:blur(4px);animation-duration:1.5s}
+.chart-columns{z-index:2;inset:0;align-items:stretch;padding:0}
+.chart-column{display:block;min-width:0;height:100%;pointer-events:none}
+.chart-point{position:absolute;top:var(--point-y);left:50%;z-index:3;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;pointer-events:auto;transform:translate(-50%,-50%);outline:none}
+.chart-point::before{position:absolute;inset:8px;border:2px solid #eaffff;border-radius:50%;background:#22bdc0;box-shadow:0 0 0 2px rgba(31,174,190,.26),0 2px 8px rgba(20,99,113,.2);content:'';transition:transform .16s ease,box-shadow .16s ease}
+.chart-point:hover::before,.chart-point:focus-visible::before{transform:scale(1.45);box-shadow:0 0 0 4px rgba(31,174,190,.17),0 0 14px rgba(40,200,206,.62)}
+.chart-point:focus-visible{outline:2px solid #20aab8;outline-offset:1px}
+.chart-point::after{position:absolute;top:-35px;left:50%;z-index:10;width:max-content;max-width:190px;padding:8px 10px;border:1px solid rgba(163,231,229,.18);border-radius:9px;background:#10242c;box-shadow:0 8px 22px rgba(2,15,22,.28);color:#efffff;content:attr(data-tooltip);font-size:10px;font-weight:800;line-height:1.25;white-space:nowrap;pointer-events:none;opacity:0;transform:translate(var(--tooltip-shift),5px);transition:opacity .16s ease,transform .16s ease}
+.chart-point:hover::after,.chart-point:focus-visible::after{opacity:1;transform:translate(var(--tooltip-shift),0)}
+.chart-point.is-today::before{animation:today-breathe 2.8s 1.5s ease-in-out 2}
+.chart-x-axis{height:27px}
+.chart-x-label{margin-top:7px;color:#79909b;font-size:9px;font-variant-numeric:tabular-nums}
+@keyframes area-draw{to{stroke-dashoffset:0}}
+@keyframes area-reveal{to{opacity:1}}
+@keyframes today-breathe{0%,100%{box-shadow:0 0 0 2px rgba(31,174,190,.25)}50%{box-shadow:0 0 0 7px rgba(31,174,190,.08),0 0 16px rgba(40,200,206,.4)}}
+html[data-theme="dark"] .chart-meta{color:#9cb2bc}
+html[data-theme="dark"] .chart-meta>strong{color:#def4f4}
+html[data-theme="dark"] .chart-peak-label{border-color:#29454f;background:#142930;color:#b7d2d6}
+html[data-theme="dark"] .chart-gridline{background:linear-gradient(90deg,rgba(130,190,202,.06),rgba(130,190,202,.18) 45%,rgba(130,190,202,.06))}
+html[data-theme="dark"] .chart-area-line{stroke:#4bd4d1;filter:drop-shadow(0 2px 6px rgba(31,198,202,.32))}
+html[data-theme="dark"] .chart-area-glow{stroke:#60eadc;opacity:.28}
+html[data-theme="dark"] .chart-point::before{border-color:#dffffb;background:#41d2cb;box-shadow:0 0 0 2px rgba(56,208,201,.28),0 2px 8px rgba(0,0,0,.28)}
+html[data-theme="dark"] .chart-x-label{color:#9fb6bf}
+@media(max-width:650px){
+  .chart-meta{flex-wrap:wrap;margin-bottom:7px}
+  .chart-peak-label{font-size:8px}
+  .chart-layout{grid-template-columns:49px minmax(0,1fr)}
+  .chart-y-axis{min-width:49px;font-size:8px}
+  .chart-y-axis span{right:5px}
+  .chart-plot-area{height:206px}
+  .chart-x-axis{height:25px}
+  .chart-x-label{font-size:8px;letter-spacing:-.2px}
+  .chart-point{width:22px;height:22px}
+}
+@media(max-width:360px){.chart-layout{grid-template-columns:43px minmax(0,1fr)}.chart-y-axis{min-width:43px;font-size:7px}}
+@media(prefers-reduced-motion:reduce){
+  .chart-area-fill{opacity:1;animation:none}
+  .chart-area-line,.chart-area-glow{stroke-dasharray:none;stroke-dashoffset:0;animation:none}
+  .chart-point.is-today::before{animation:none}
+}
+.chart-meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.78fr);gap:10px;margin:0 4px 15px}
+.chart-meta-card{display:flex;min-width:0;min-height:58px;align-items:center;justify-content:space-between;gap:12px;padding:10px 13px;border:1px solid #e2edf0;border-radius:11px;background:linear-gradient(120deg,#f8fcfd,#fff);}
+.chart-meta-total{border-color:#d4eceb;background:linear-gradient(115deg,#effaf8,#f8fcfa)}
+.chart-meta-peak{border-color:#f0e3c5;background:linear-gradient(115deg,#fffaf0,#fffdf8)}
+.chart-meta-label{display:block;color:#8297a2;font-size:8px;font-weight:800;letter-spacing:1px;line-height:1.35}
+.chart-meta-total .chart-meta-label{color:#468980}
+.chart-meta-peak .chart-meta-label{color:#9b7a3b}
+.chart-meta-card>strong{min-width:0;overflow:hidden;color:#20485b;font-size:15px;font-weight:850;letter-spacing:-.2px;text-align:right;text-overflow:ellipsis;white-space:nowrap}
+.chart-meta-peak>strong{color:#886620;font-size:12px}
+.chart-meta-dot{margin-right:7px;background:#35bcae}
+.chart-peak-guide{stroke:#edb94e;stroke-width:1.4;stroke-dasharray:3 5;opacity:.65;vector-effect:non-scaling-stroke}
+.chart-point.is-peak::before{inset:6px;border:2px solid #fff8e6;background:#f4ba4c;box-shadow:0 0 0 3px rgba(244,186,76,.28),0 0 16px rgba(244,186,76,.55)}
+html[data-theme="dark"] .chart-meta-total{border-color:#27564f;background:linear-gradient(115deg,#12332f,#172b2c)}
+html[data-theme="dark"] .chart-meta-peak{border-color:#594a30;background:linear-gradient(115deg,#2c281d,#24231d)}
+html[data-theme="dark"] .chart-meta-card{border-color:#29434c;background:linear-gradient(115deg,#14252d,#17232a)}
+html[data-theme="dark"] .chart-meta-label{color:#94aeb7}
+html[data-theme="dark"] .chart-meta-total .chart-meta-label{color:#8acabd}
+html[data-theme="dark"] .chart-meta-peak .chart-meta-label{color:#d5b675}
+html[data-theme="dark"] .chart-meta-card>strong{color:#e2f1f2}
+html[data-theme="dark"] .chart-meta-peak>strong{color:#f2cf7d}
+html[data-theme="dark"] .chart-peak-guide{stroke:#f5c867;opacity:.72}
+.chart-subtitle{margin:4px 0 0;color:#8296a1;font-size:10px;letter-spacing:.1px}
+.chart-meta{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(120px,.72fr);gap:9px;margin:0 4px 13px}
+.chart-meta-card{min-height:65px;align-items:flex-start;justify-content:center;gap:8px;padding:10px 13px}
+.chart-meta-card>strong{text-align:left;font-size:15px}
+.chart-meta-total{position:relative;overflow:hidden}
+.chart-meta-total::after{position:absolute;right:-17px;bottom:-37px;width:85px;height:85px;border:1px solid rgba(53,188,174,.13);border-radius:50%;box-shadow:0 0 0 11px rgba(53,188,174,.035),0 0 0 22px rgba(53,188,174,.025);content:'';pointer-events:none}
+.chart-meta-peak{border-color:#ebdfc4;background:linear-gradient(125deg,#fffaf0,#fffdf8)}
+.chart-meta-average{border-color:#e2e9ec;background:linear-gradient(125deg,#f7fafb,#fff)}
+.chart-meta-average>strong{color:#557280}
+.chart-average-line{fill:none;stroke:#d7a743;stroke-width:2;stroke-dasharray:6 6;stroke-linecap:round;stroke-linejoin:round;opacity:0;vector-effect:non-scaling-stroke;animation:trend-arrive .55s 1s ease-out forwards}
+.chart-point::after{white-space:pre-line;line-height:1.55}
+.chart-legend{display:flex;align-items:center;gap:17px;margin:0 4px;padding:10px 1px 2px;color:#82939c;font-size:9px}
+.chart-legend>span{display:inline-flex;align-items:center;gap:7px}
+.legend-sample{display:inline-block;width:16px;height:0;border-top:2px solid #28b5c4}
+.legend-daily{position:relative}
+.legend-daily::after{position:absolute;top:-4px;left:6px;width:6px;height:6px;border:1.5px solid #fff;border-radius:50%;background:#28b5c4;box-shadow:0 0 0 1px #28b5c4;content:''}
+.legend-trend{border-color:#d7a743;border-top-style:dashed}
+@keyframes trend-arrive{to{opacity:.95}}
+html[data-theme="dark"] .chart-subtitle{color:#99afb8}
+html[data-theme="dark"] .chart-meta-average{border-color:#31444b;background:linear-gradient(125deg,#16262d,#18232a)}
+html[data-theme="dark"] .chart-meta-average>strong{color:#b7d5da}
+html[data-theme="dark"] .chart-meta-peak{border-color:#594a30;background:linear-gradient(125deg,#2c281d,#24231d)}
+html[data-theme="dark"] .chart-average-line{stroke:#f1c35e}
+html[data-theme="dark"] .chart-legend{color:#91a8b1}
+html[data-theme="dark"] .legend-trend{border-color:#f1c35e}
+@media(max-width:650px){
+  .chart-meta{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:11px}
+  .chart-meta-total{grid-column:1/-1}
+  .chart-meta-card{min-height:53px;padding:8px 10px}
+  .chart-meta-total{min-height:58px}
+  .chart-meta-card>strong{font-size:13px}
+  .chart-meta-peak>strong,.chart-meta-average>strong{font-size:11px}
+  .chart-meta-label{font-size:7px;letter-spacing:.7px}
+  .chart-subtitle{max-width:245px;font-size:9px;line-height:1.4}
+  .chart-legend{flex-wrap:wrap;gap:8px 14px;font-size:8px}
+}
+@media(prefers-reduced-motion:reduce){.chart-average-line{opacity:1;animation:none}}
+/* Interactive "Iceflow" chart: keyboard and pointer explore each calendar day */
+.chart-plot-area{overflow:hidden;border-radius:13px;background:radial-gradient(ellipse at 77% 5%,rgba(49,184,190,.10),transparent 43%),linear-gradient(180deg,rgba(237,248,248,.63),rgba(255,255,255,.15) 88%)}
+.chart-columns{z-index:2}
+.chart-column{z-index:auto;overflow:visible}
+.chart-column::before{position:absolute;top:7px;bottom:0;left:50%;width:1px;background:linear-gradient(180deg,rgba(51,177,184,.03),rgba(51,177,184,.20) 45%,rgba(51,177,184,.05));content:'';opacity:0;pointer-events:none;transition:opacity .15s ease}
+.chart-column:hover::before,.chart-column.is-selected::before{opacity:1}
+.chart-column::after{content:none!important}
+.chart-point{top:var(--point-y);z-index:3}
+.chart-point::after{display:none}
+.chart-point.is-zero::before{inset:10px;border:0;background:#5f9eaa;box-shadow:none;opacity:0;transform:scale(.5)}
+.chart-column:hover .chart-point.is-zero::before,.chart-column.is-selected .chart-point.is-zero::before{opacity:.72;transform:scale(1)}
+.chart-column.is-selected .chart-point::before{transform:scale(1.2)}
+.chart-point.is-peak::before{inset:6px;border:2px solid #fff;background:#f1ba50;box-shadow:0 0 0 4px rgba(241,186,80,.19),0 0 20px rgba(241,186,80,.42);animation:peak-arrive .65s 1.35s cubic-bezier(.18,.78,.24,1.1) both}
+.chart-point.is-peak:hover::before,.chart-point.is-peak:focus-visible::before{transform:scale(1.22);box-shadow:0 0 0 6px rgba(241,186,80,.19),0 0 24px rgba(241,186,80,.55)}
+.chart-point.is-today:not(.is-peak)::before{animation:today-breathe 2.8s 1.5s ease-in-out 2}
+.chart-live-readout{position:absolute;top:12px;right:12px;z-index:4;display:grid;grid-template-columns:auto auto;align-items:end;gap:5px 12px;min-width:150px;max-width:calc(100% - 25px);padding:10px 12px;border:1px solid rgba(149,196,202,.38);border-radius:11px;background:rgba(249,253,253,.88);box-shadow:0 7px 22px rgba(22,75,88,.08);backdrop-filter:blur(12px);pointer-events:none}
+.chart-readout-label{grid-column:1/-1;color:#528b8d;font-size:7px;font-weight:850;letter-spacing:1.4px}
+.chart-readout-date{color:#69828b;font-size:9px;font-weight:700;letter-spacing:.45px;text-transform:uppercase}
+.chart-live-readout>strong{color:#17475a;font-size:13px;font-variant-numeric:tabular-nums;font-weight:850;text-align:right;white-space:nowrap}
+.chart-column.is-peak::before{background:linear-gradient(180deg,rgba(241,186,80,.04),rgba(241,186,80,.30) 48%,rgba(241,186,80,.08))}
+.chart-peak-guide{stroke-dasharray:2 5;opacity:.82}
+.chart-average-line{stroke-width:2.4;stroke-dasharray:4 6}
+.chart-legend{padding-top:12px}
+@keyframes peak-arrive{0%{transform:scale(.25);opacity:.2}72%{transform:scale(1.36)}100%{transform:scale(1);opacity:1}}
+html[data-theme="dark"] .chart-plot-area{background:radial-gradient(ellipse at 77% 5%,rgba(43,196,199,.12),transparent 44%),linear-gradient(180deg,rgba(20,46,53,.55),rgba(12,28,34,.14) 88%)}
+html[data-theme="dark"] .chart-column::before{background:linear-gradient(180deg,rgba(74,210,205,.025),rgba(74,210,205,.24) 45%,rgba(74,210,205,.06))}
+html[data-theme="dark"] .chart-point.is-zero::before{background:#65c3c4}
+html[data-theme="dark"] .chart-point.is-peak::before{border-color:#fff8e5;background:#f2c35f;box-shadow:0 0 0 4px rgba(242,195,95,.19),0 0 20px rgba(242,195,95,.45)}
+html[data-theme="dark"] .chart-live-readout{border-color:rgba(88,157,164,.32);background:rgba(10,27,33,.84);box-shadow:0 8px 24px rgba(0,0,0,.24)}
+html[data-theme="dark"] .chart-readout-label{color:#82c7bc}
+html[data-theme="dark"] .chart-readout-date{color:#a6c2c9}
+html[data-theme="dark"] .chart-live-readout>strong{color:#e4fbf6}
+html[data-theme="dark"] .chart-peak-guide{stroke:#f2c35f}
+@media(max-width:650px){
+  .chart-plot-area{border-radius:10px}
+  .chart-live-readout{top:9px;right:8px;min-width:125px;gap:4px 8px;padding:8px 9px}
+  .chart-readout-label{font-size:6px}
+  .chart-readout-date{font-size:8px}
+  .chart-live-readout>strong{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){
+  .chart-point.is-peak::before,.chart-point.is-today:not(.is-peak)::before{animation:none}
+}
+.chart-point{inset:0;width:100%;height:100%;transform:none}
+.chart-point::before{top:var(--point-y);left:50%;right:auto;bottom:auto;inset:auto;width:8px;height:8px;transform:translate(-50%,-50%)}
+.chart-point:hover::before,.chart-point:focus-visible::before{transform:translate(-50%,-50%) scale(1.5)}
+.chart-point.is-zero::before{inset:auto;width:6px;height:6px;transform:translate(-50%,-50%) scale(.5)}
+.chart-column:hover .chart-point.is-zero::before,.chart-column.is-selected .chart-point.is-zero::before{transform:translate(-50%,-50%) scale(1);}
+.chart-column.is-selected .chart-point::before{transform:translate(-50%,-50%) scale(1.2)}
+.chart-point.is-peak::before{inset:auto;width:12px;height:12px;transform:translate(-50%,-50%) scale(1)}
+.chart-point.is-peak:hover::before,.chart-point.is-peak:focus-visible::before{transform:translate(-50%,-50%) scale(1.22)}
+@keyframes peak-arrive{0%{transform:translate(-50%,-50%) scale(.25);opacity:.2}72%{transform:translate(-50%,-50%) scale(1.36)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+/* Complete visual direction: a glacial night-market console */
+.chart-panel{position:relative;isolation:isolate;overflow:hidden;margin-bottom:20px;padding:0;border:1px solid #294751;border-radius:19px;background:radial-gradient(ellipse at 85% 7%,rgba(34,154,157,.18),transparent 35%),linear-gradient(135deg,#08171f 0%,#0c222a 52%,#10292f 100%);box-shadow:0 18px 42px rgba(4,23,31,.2),inset 0 1px rgba(255,255,255,.035);color:#f1f8f7}
+.chart-panel::before{position:absolute;top:0;right:0;left:0;height:2px;background:linear-gradient(90deg,#53d7e4 0%,#44b8ae 42%,#e9b856 82%,rgba(233,184,86,.12));content:''}
+.chart-panel::after{position:absolute;top:-235px;right:-125px;z-index:0;width:500px;height:500px;border:1px solid rgba(99,200,196,.055);border-radius:50%;box-shadow:0 0 0 20px rgba(99,200,196,.018),0 0 0 42px rgba(99,200,196,.015),0 0 0 76px rgba(99,200,196,.012);content:'';pointer-events:none}
+.chart-heading,.chart-meta,.sales-chart{position:relative;z-index:1}
+.chart-heading{align-items:flex-start;margin:0;padding:25px 28px 17px;border-bottom:1px solid rgba(129,174,181,.13)}
+.chart-heading .eyebrow{margin-bottom:6px;color:#d0b16d;font-size:8px;letter-spacing:1.8px}
+.chart-heading h2{color:#f0f8f7;font-size:22px;letter-spacing:-.5px}
+.chart-subtitle{margin:5px 0 0;color:#8fa9af;font-size:10px;letter-spacing:.15px}
+.chart-unit{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid rgba(86,158,161,.24);border-radius:7px;background:rgba(16,50,55,.7);color:#a3c5c4;font-size:8px;letter-spacing:1px}
+.chart-unit i{width:6px;height:6px;border-radius:50%;background:#56d3b4;box-shadow:0 0 9px rgba(86,211,180,.6)}
+.chart-meta{grid-template-columns:minmax(220px,.9fr) minmax(0,1.4fr);gap:26px;margin:0;padding:19px 28px 13px;border-bottom:1px solid rgba(129,174,181,.11)}
+.chart-total-block{display:grid;gap:7px;min-width:0}
+.chart-total-label{color:#88a7ad;font-size:8px;font-weight:800;letter-spacing:1.35px}
+.chart-total-value{overflow:hidden;color:#f0fbf8;font-size:30px;font-weight:780;letter-spacing:-1.1px;line-height:1.05;font-variant-numeric:tabular-nums;text-overflow:ellipsis;white-space:nowrap}
+.chart-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-self:stretch}
+.chart-kpi{display:grid;align-content:center;gap:8px;min-width:0;padding:2px 14px;border-left:1px solid rgba(129,174,181,.17)}
+.chart-kpi>span{overflow:hidden;color:#79969c;font-size:7px;font-weight:800;letter-spacing:1.15px;text-overflow:ellipsis;white-space:nowrap}
+.chart-kpi>strong{overflow:hidden;color:#dce9e7;font-size:12px;font-weight:730;font-variant-numeric:tabular-nums;text-overflow:ellipsis;white-space:nowrap}
+.chart-kpi.kpi-peak>strong{color:#efc76f}
+.sales-chart{padding:16px 28px 20px}
+.chart-scroll{overflow:visible;scrollbar-width:thin;scrollbar-color:#30535a transparent}
+.chart-layout{grid-template-columns:61px minmax(0,1fr);width:100%;max-width:none}
+.chart-y-axis{height:246px;min-width:61px;background:transparent;color:#708a91;font-size:8px}
+.chart-y-axis span{right:9px}
+.chart-main{width:auto;min-width:0}
+.chart-plot-area{height:246px;overflow:hidden;border:1px solid rgba(118,170,176,.12);border-radius:12px;background:radial-gradient(ellipse at 69% 0%,rgba(50,174,170,.105),transparent 49%),linear-gradient(180deg,rgba(10,42,49,.83),rgba(6,26,34,.76))}
+.chart-gridline{background:linear-gradient(90deg,rgba(128,177,183,.035),rgba(128,177,183,.13) 50%,rgba(128,177,183,.035))}
+.chart-gridline:last-child{opacity:.48}
+.chart-area-svg{inset:1px;width:calc(100% - 2px);height:calc(100% - 2px)}
+.chart-area-line{stroke:#54d8e4;stroke-width:2.7;filter:drop-shadow(0 0 6px rgba(51,202,212,.38))}
+.chart-area-glow{stroke:#4fe5d1;stroke-width:9;opacity:.17;filter:blur(5px)}
+.chart-average-line{stroke:#f1c568;stroke-width:1.8;stroke-dasharray:4 7;opacity:.9}
+.chart-columns{z-index:2}
+.chart-column::before{background:linear-gradient(180deg,rgba(79,211,210,.015),rgba(79,211,210,.14) 60%,rgba(79,211,210,.025))}
+.chart-column.is-peak::before{background:linear-gradient(180deg,rgba(241,197,104,.015),rgba(241,197,104,.24) 48%,rgba(241,197,104,.035))}
+.chart-point::before{border-color:#dffeff;background:#4fd5de;box-shadow:0 0 0 2px rgba(71,203,212,.2),0 0 12px rgba(59,204,213,.45)}
+.chart-point.is-zero::before{background:#75b7bc;box-shadow:none}
+.chart-point.is-peak::before{border:2px solid #fff3ce;background:#f2bd53;box-shadow:0 0 0 4px rgba(242,189,83,.17),0 0 19px rgba(242,189,83,.55)}
+.chart-point:focus-visible{outline:1px solid rgba(115,222,222,.48);outline-offset:-2px;border-radius:5px}
+.chart-live-readout{top:12px;right:12px;min-width:166px;padding:11px 13px;border:1px solid rgba(122,186,187,.21);border-radius:9px;background:rgba(7,26,33,.86);box-shadow:0 12px 26px rgba(0,0,0,.24);backdrop-filter:blur(14px)}
+.chart-readout-label{color:#70b6b3;font-size:7px;letter-spacing:1.5px}
+.chart-readout-date{color:#91aeb3;font-size:8px}
+.chart-live-readout>strong{color:#edfaf5;font-size:13px}
+.chart-x-axis{height:28px}
+.chart-x-label{margin-top:8px;color:#6e878e;font-size:8px;font-weight:650}
+.chart-legend{gap:20px;margin:2px 2px 0;padding:12px 0 0;color:#78939a;font-size:8px;letter-spacing:.15px}
+.legend-sample{width:18px;border-color:#54d8e4}
+.legend-daily::after{border-color:#c8feff;background:#54d8e4;box-shadow:0 0 8px rgba(84,216,228,.55)}
+.legend-trend{border-color:#f1c568}
+.chart-peak-guide{stroke:#f1c568;stroke-width:1;stroke-dasharray:2 5;opacity:.8}
+html[data-theme="dark"] .chart-panel{border-color:#294751;background:radial-gradient(ellipse at 85% 7%,rgba(34,154,157,.18),transparent 35%),linear-gradient(135deg,#08171f 0%,#0c222a 52%,#10292f 100%)}
+html[data-theme="dark"] .chart-y-axis{background:transparent;color:#708a91}
+html[data-theme="dark"] .chart-gridline{background:linear-gradient(90deg,rgba(128,177,183,.035),rgba(128,177,183,.13) 50%,rgba(128,177,183,.035))}
+@media(max-width:760px){
+  .chart-heading{padding:20px 17px 14px}
+  .chart-heading h2{font-size:19px}
+  .chart-heading .eyebrow{font-size:7px;letter-spacing:1.3px}
+  .chart-subtitle{font-size:9px}
+  .chart-unit{padding:6px 7px;font-size:7px}
+  .chart-meta{grid-template-columns:minmax(0,1fr);gap:14px;padding:15px 17px 12px}
+  .chart-total-value{font-size:26px}
+  .chart-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .chart-kpi{gap:6px;padding:1px 9px}
+  .chart-kpi:first-child{padding-left:0;border-left:0}
+  .chart-kpi>span{font-size:6px;letter-spacing:.75px}
+  .chart-kpi>strong{font-size:10px}
+  .sales-chart{padding:13px 12px 16px}
+  .chart-layout{grid-template-columns:45px minmax(0,1fr)}
+  .chart-y-axis{height:204px;min-width:45px;font-size:7px}
+  .chart-y-axis span{right:6px}
+  .chart-plot-area{height:204px;border-radius:9px}
+  .chart-x-axis{height:24px}
+  .chart-x-label{font-size:7px;margin-top:7px}
+  .chart-live-readout{top:8px;right:7px;min-width:128px;gap:4px 8px;padding:8px 9px}
+  .chart-readout-label{font-size:6px}
+  .chart-readout-date{font-size:7px}
+  .chart-live-readout>strong{font-size:11px}
+  .chart-legend{gap:9px 16px;flex-wrap:wrap;font-size:7px}
+}
+@media(max-width:390px){
+  .chart-heading{gap:8px}
+  .chart-heading .eyebrow{letter-spacing:.9px}
+  .chart-unit{font-size:6px}
+  .chart-kpi{padding-inline:6px}
+  .chart-kpi>strong{font-size:9px}
+  .chart-live-readout{min-width:116px}
+  .chart-layout{grid-template-columns:41px minmax(0,1fr)}
+  .chart-y-axis{min-width:41px}
+}
+/* CoinMarketCap-inspired sales terminal */
+.chart-panel{overflow:hidden;padding:0;border:1px solid #222d3c;border-radius:11px;background:#0b1220;box-shadow:0 12px 30px rgba(12,22,37,.16);color:#e8edf7}
+.chart-panel::before{display:block;position:absolute;top:0;right:0;left:0;z-index:3;height:1px;background:linear-gradient(90deg,transparent,rgba(78,117,164,.5),transparent);content:''}
+.chart-panel::after{display:none}
+.chart-heading{align-items:center;margin:0;padding:19px 22px 13px;border:0}
+.chart-heading .eyebrow{margin-bottom:5px;color:#7f91a8;font-size:8px;letter-spacing:1.3px}
+.chart-heading h2{color:#f2f5fb;font-size:19px;letter-spacing:-.3px}
+.chart-subtitle{margin:4px 0 0;color:#818da1;font-size:10px}
+.chart-unit{border-color:#2b3748;background:#171f2d;color:#9eabc0;font-size:9px}
+.chart-meta{grid-template-columns:minmax(180px,.85fr) minmax(0,1.6fr);gap:18px;margin:0;padding:4px 22px 16px;border:0}
+.chart-total-block{gap:5px}
+.chart-total-label{color:#8290a5;font-size:7px;letter-spacing:1.15px}
+.chart-total-value{color:#f2f5fc;font-size:26px;letter-spacing:-.5px}
+.chart-kpi{gap:6px;padding:0 11px;border-color:#273143}
+.chart-kpi>span{color:#77859c;font-size:7px;letter-spacing:.65px}
+.chart-kpi>strong{color:#c5cedd;font-size:10px}
+.chart-kpi.kpi-peak>strong{color:#78d7ad}
+.chart-kpi.kpi-average>strong{color:#cbd3e1}
+.market-chart{border-top:1px solid #212c3b;background:#0b1220}
+.market-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;border-bottom:1px solid #202a39;background:#0e1523}
+.market-control-group{display:flex;align-items:center;gap:2px;padding:3px;border:1px solid #293446;border-radius:8px;background:#1a2230}
+.market-control{min-height:28px;padding:0 11px;border:0;border-radius:6px;background:transparent;color:#8793a6;font:inherit;font-size:9px;font-weight:700;cursor:pointer;transition:background .16s,color .16s,box-shadow .16s}
+.market-control:hover{color:#edf3fb}
+.market-control.is-active{background:#303a4c;color:#f4f7fc;box-shadow:0 1px 4px rgba(0,0,0,.22)}
+.range-group .market-control{min-width:36px;padding-inline:8px}
+.chart-scroll{overflow:visible}
+.chart-layout{grid-template-columns:minmax(0,1fr) 58px;width:100%;max-width:none;align-items:start}
+.chart-main{min-width:0}
+.chart-plot-area{position:relative;height:300px;overflow:hidden;border:0;border-radius:0;background:#0b1220}
+.market-chart-svg{position:absolute;inset:0;z-index:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.market-gridline{stroke:#273142;stroke-width:1;vector-effect:non-scaling-stroke}
+.market-area{stroke:none;opacity:0;animation:market-area-in .6s .35s ease-out forwards}
+.market-line{fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;vector-effect:non-scaling-stroke;animation:market-line-in .58s cubic-bezier(.2,.7,.25,1) forwards}
+.market-up{stroke:#08c98c;filter:drop-shadow(0 0 4px rgba(8,201,140,.12))}
+.market-down{stroke:#ff4c58;filter:drop-shadow(0 0 3px rgba(255,76,88,.1))}
+.market-average-line{stroke:#8792a5;stroke-width:1;stroke-dasharray:2 4;opacity:.8;vector-effect:non-scaling-stroke}
+.market-volume-divider{stroke:#1e2939;stroke-width:1;vector-effect:non-scaling-stroke}
+.market-volume-bar{fill:#28365b;opacity:.88}
+.market-crosshair{stroke:#8798aa;stroke-width:1;stroke-dasharray:2 4;opacity:.62;vector-effect:non-scaling-stroke}
+.market-peak-ring{fill:#0b1220;stroke:#10d696;stroke-width:2.2;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 5px rgba(16,214,150,.7))}
+.chart-y-axis{position:relative;height:300px;min-width:58px;background:#0b1220;color:#72839b;font-size:8px}
+.chart-y-axis span{position:absolute;top:0;right:8px;transform:translateY(-50%);font-variant-numeric:tabular-nums}
+.chart-y-axis span:first-child{transform:translateY(0)}
+.chart-x-axis{height:28px;border-top:1px solid #202b3a;background:#0b1220}
+.chart-x-label{margin-top:8px;color:#75839a;font-size:8px;font-weight:600}
+.chart-columns{z-index:2;inset:0;display:grid;align-items:stretch;padding:0}
+.chart-column{position:relative;display:block;min-width:0;height:100%;overflow:visible;pointer-events:none}
+.chart-column::before{position:absolute;top:0;bottom:0;left:50%;width:1px;background:linear-gradient(180deg,rgba(104,166,218,.015),rgba(104,166,218,.14) 54%,rgba(104,166,218,.02));content:'';opacity:0;pointer-events:none}
+.chart-column:hover::before,.chart-column.is-selected::before{opacity:1}
+.chart-column.is-up.is-selected::before{background:linear-gradient(180deg,rgba(8,201,140,.03),rgba(8,201,140,.13) 54%,rgba(8,201,140,.02))}
+.chart-column.is-down.is-selected::before{background:linear-gradient(180deg,rgba(255,76,88,.03),rgba(255,76,88,.13) 54%,rgba(255,76,88,.02))}
+.market-day-hit{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:transparent;cursor:crosshair;pointer-events:auto}
+.market-day-hit:focus-visible{outline:1px solid rgba(115,158,207,.42);outline-offset:-2px}
+.chart-live-readout{position:absolute;top:9px;right:10px;z-index:4;display:grid;grid-template-columns:auto auto;align-items:center;gap:4px 10px;min-width:170px;max-width:calc(100% - 20px);padding:9px 11px;border:1px solid #2b3748;border-radius:8px;background:rgba(14,22,35,.93);box-shadow:0 8px 22px rgba(0,0,0,.2);backdrop-filter:blur(8px);pointer-events:none}
+.chart-readout-label{grid-column:1/-1;color:#7f91aa;font-size:7px;font-weight:800;letter-spacing:1.1px}
+.chart-readout-date{color:#a1adc0;font-size:8px;font-weight:700;text-transform:uppercase}
+.chart-live-readout>strong{color:#eef3fb;font-size:12px;font-weight:800;text-align:right;white-space:nowrap}
+.chart-live-readout>strong.is-up{color:#13cd92}
+.chart-live-readout>strong.is-down{color:#ff5964}
+.chart-readout-trend{grid-column:1/-1;color:#7b899e;font-size:8px}
+.volume-caption{position:absolute;bottom:7px;left:10px;z-index:3;color:#74819a;font-size:7px;font-weight:750;letter-spacing:1px;pointer-events:none}
+.chart-legend{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0;padding:9px 13px 11px;border-top:1px solid #202a39;background:#0e1523;color:#8390a4;font-size:8px}
+.chart-legend>span{display:inline-flex;align-items:center;gap:6px}
+.legend-sample{display:inline-block;width:13px;height:0;border-top:2px solid}
+.legend-up{border-color:#08c98c}
+.legend-down{border-color:#ff4c58}
+.legend-volume{height:7px;border:0;border-radius:1px 1px 0 0;background:#35436d}
+.legend-baseline{border-color:#8792a5;border-top-style:dashed}
+@keyframes market-line-in{to{stroke-dashoffset:0}}
+@keyframes market-area-in{to{opacity:1}}
+html[data-theme="dark"] .chart-panel{border-color:#222d3c;background:#0b1220;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+@media(max-width:700px){
+  .chart-heading{padding:16px 13px 11px}
+  .chart-heading h2{font-size:17px}
+  .chart-subtitle{font-size:9px}
+  .chart-meta{grid-template-columns:minmax(0,1fr);gap:10px;padding:3px 13px 12px}
+  .chart-total-value{font-size:23px}
+  .chart-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .chart-kpi{gap:5px;padding:0 7px}
+  .chart-kpi:first-child{padding-left:0;border-left:0}
+  .chart-kpi>span{font-size:6px;letter-spacing:.35px}
+  .chart-kpi>strong{font-size:9px}
+  .chart-kpi.kpi-peak>strong{font-size:8px}
+  .market-toolbar{align-items:flex-start;flex-direction:column;padding:9px}
+  .market-control-group{max-width:100%}
+  .market-control{min-height:27px;padding-inline:10px;font-size:8px}
+  .range-group .market-control{min-width:42px}
+  .chart-layout{grid-template-columns:minmax(0,1fr) 48px}
+  .chart-plot-area,.chart-y-axis{height:260px}
+  .chart-y-axis{min-width:48px;font-size:7px}
+  .chart-y-axis span{right:5px}
+  .chart-live-readout{top:8px;right:6px;min-width:145px;padding:8px 9px}
+  .chart-legend{gap:8px 13px;padding:8px 9px;font-size:7px}
+}
+@media(max-width:390px){
+  .chart-unit{font-size:7px}
+  .market-control{padding-inline:8px}
+  .chart-layout{grid-template-columns:minmax(0,1fr) 43px}
+  .chart-y-axis{min-width:43px}
+  .chart-readout-trend{font-size:7px}
+}
+@media(prefers-reduced-motion:reduce){.market-area,.market-line{opacity:1;animation:none;stroke-dasharray:none;stroke-dashoffset:0}}
+@media(prefers-reduced-motion:reduce){
+  .chart-area-fill,.chart-average-line{opacity:1;animation:none}
+  .chart-area-line,.chart-area-glow{stroke-dasharray:none;stroke-dashoffset:0;animation:none}
+  .chart-point.is-peak::before,.chart-point.is-today:not(.is-peak)::before{animation:none}
+}
+
+/* Keep the market-style chart visually unified in both app themes. */
+.chart-panel-market{border-color:#222d3c;background:#0b1220;box-shadow:0 12px 30px rgba(12,22,37,.18);color:#e8edf7}
+.chart-panel-market .chart-heading{border-color:#212c3b}
+.chart-panel-market .chart-heading .eyebrow{color:#7f91a8}
+.chart-panel-market .chart-heading h2{color:#f2f5fb}
+.chart-panel-market .chart-subtitle{color:#818da1}
+.chart-panel-market .chart-meta{border-color:#273143}
+.chart-panel-market .chart-total-label{color:#8290a5}
+.chart-panel-market .chart-total-value{color:#f2f5fc}
+.chart-panel-market .chart-kpi{border-color:#273143}
+.chart-panel-market .chart-kpi>span{color:#77859c}
+.chart-panel-market .chart-kpi>strong{color:#c5cedd}
+.chart-panel-market .chart-kpi.kpi-peak>strong{color:#78d7ad}
+.chart-panel-market .chart-kpi.kpi-average>strong{color:#cbd3e1}
+.chart-panel-market .market-toolbar,.chart-panel-market .chart-x-axis,.chart-panel-market .chart-legend{border-color:#202a39;background:#0e1523;color:#8390a4}
+.chart-panel-market .chart-plot-area,.chart-panel-market .chart-y-axis{border-color:#212c3b;background:#0b1220}
+.chart-panel-market .chart-y-axis{color:#72839b}
+html[data-theme="dark"] .chart-panel-market{border-color:#222d3c;background:#0b1220;color:#e8edf7}
+/* Refined ice-area chart, aligned with the app's original light visual language */
+.chart-panel{position:relative;isolation:auto;overflow:visible;margin-bottom:19px;padding:18px 20px 14px;border:1px solid #dce9ee;border-radius:16px;background:radial-gradient(ellipse at 98% 0%,rgba(87,195,198,.075),transparent 31%),linear-gradient(145deg,#fff 0%,#fbfdfe 72%,#f8fcfc 100%);box-shadow:0 8px 25px rgba(35,77,99,.045);color:#173247}
+.chart-panel::before,.chart-panel::after{display:none}
+.chart-heading{align-items:center;margin:0 0 13px;padding:0 0 13px;border-bottom:1px solid #e8eff2}
+.chart-heading .eyebrow{margin-bottom:4px;color:#9a8352;font-size:8px;letter-spacing:1.6px}
+.chart-heading h2{color:#173247;font-size:18px;letter-spacing:-.35px}
+.chart-subtitle{margin:4px 0 0;color:#8497a2;font-size:10px;letter-spacing:0}
+.chart-unit{padding:6px 10px;border:1px solid #dceef2;border-radius:20px;background:#f4fbfc;color:#608091;font-size:9px;font-weight:750;letter-spacing:.1px}
+.chart-meta{grid-template-columns:minmax(185px,.8fr) minmax(0,1.6fr);gap:20px;margin:0 0 13px;padding:0 0 13px;border-bottom:1px solid #e8eff2}
+.chart-total-block{gap:5px}
+.chart-total-label{color:#78909b;font-size:8px;letter-spacing:1.1px}
+.chart-total-value{color:#19475c;font-size:26px;letter-spacing:-.65px}
+.chart-kpi{gap:5px;padding:0 12px;border-color:#e2ecef}
+.chart-kpi>span{color:#8b9ca5;font-size:7px;letter-spacing:.7px}
+.chart-kpi>strong{color:#294b5b;font-size:11px}
+.chart-kpi.kpi-peak>strong{color:#aa7d25}
+.sales-chart{padding:0}
+.chart-layout{grid-template-columns:minmax(0,1fr) 62px}
+.chart-y-axis{height:232px;min-width:62px;background:transparent;color:#8296a0;font-size:8px}
+.chart-y-axis span{right:8px}
+.chart-plot-area{height:232px;overflow:hidden;border:0;border-bottom:1px solid #cddde3;border-radius:0;background:linear-gradient(180deg,#fbfefe 0%,#f4fbfc 78%,#eff8fa 100%)}
+.chart-gridline{background:linear-gradient(90deg,rgba(97,139,154,.035),rgba(97,139,154,.13) 50%,rgba(97,139,154,.035))}
+.chart-area-svg{inset:0;width:100%;height:100%}
+.chart-area-line{stroke:#239fbd;stroke-width:2.4;filter:drop-shadow(0 1px 2px rgba(30,144,170,.18))}
+.chart-area-glow{stroke:#42c0c9;stroke-width:7;opacity:.1;filter:blur(4px)}
+.chart-average-line{stroke:#d6a43d;stroke-width:1.7;stroke-dasharray:4 7;opacity:.9}
+.chart-column::before{background:linear-gradient(180deg,rgba(45,163,183,.015),rgba(45,163,183,.1) 60%,rgba(45,163,183,.025))}
+.chart-column.is-peak::before{background:linear-gradient(180deg,rgba(214,164,61,.015),rgba(214,164,61,.18) 50%,rgba(214,164,61,.035))}
+.chart-point::before{border-color:#f4feff;background:#27abc4;box-shadow:0 0 0 2px rgba(39,171,196,.18),0 1px 5px rgba(25,107,129,.2)}
+.chart-point.is-zero::before{background:#79b5c0;box-shadow:none}
+.chart-point.is-peak::before{border:2px solid #fff;background:#edb846;box-shadow:0 0 0 3px rgba(237,184,70,.19),0 2px 9px rgba(189,135,26,.25)}
+.chart-live-readout{top:10px;right:10px;min-width:158px;padding:9px 11px;border:1px solid rgba(211,229,232,.92);border-radius:9px;background:rgba(255,255,255,.92);box-shadow:0 5px 18px rgba(36,84,99,.1);backdrop-filter:blur(10px)}
+.chart-readout-label{color:#328f94;font-size:7px;letter-spacing:1.2px}
+.chart-readout-date{color:#7d9099;font-size:8px}
+.chart-live-readout>strong{color:#19475c;font-size:12px}
+.chart-x-axis{height:25px}
+.chart-x-label{margin-top:7px;color:#718a97;font-size:8px;font-weight:650}
+.chart-legend{gap:18px;margin:0 2px;padding:7px 0 0;color:#81949d;font-size:8px;letter-spacing:0}
+.legend-sample{border-color:#239fbd}
+.legend-daily::after{border-color:#fff;background:#27abc4;box-shadow:0 0 0 1px #27abc4}
+.legend-trend{border-color:#d6a43d}
+.chart-peak-guide{stroke:#d6a43d;stroke-width:1;stroke-dasharray:2 5;opacity:.78}
+html[data-theme="dark"] .chart-panel{border-color:#29424e;background:radial-gradient(ellipse at 98% 0%,rgba(87,195,198,.08),transparent 31%),linear-gradient(145deg,#142129 0%,#111e25 72%,#101c23 100%);box-shadow:0 12px 32px rgba(0,0,0,.28);color:#edf7fa}
+html[data-theme="dark"] .chart-heading{border-color:#29404a}
+html[data-theme="dark"] .chart-heading h2{color:#edf7fa}
+html[data-theme="dark"] .chart-subtitle{color:#97acb6}
+html[data-theme="dark"] .chart-meta{border-color:#29404a}
+html[data-theme="dark"] .chart-total-label{color:#94abb5}
+html[data-theme="dark"] .chart-total-value{color:#e6f4f5}
+html[data-theme="dark"] .chart-kpi{border-color:#344b53}
+html[data-theme="dark"] .chart-kpi>span{color:#819ba5}
+html[data-theme="dark"] .chart-kpi>strong{color:#d1e2e5}
+html[data-theme="dark"] .chart-kpi.kpi-peak>strong{color:#f1cb72}
+html[data-theme="dark"] .chart-plot-area{border-color:#36515d;background:linear-gradient(180deg,#142b33 0%,#10232b 78%,#0e2028 100%)}
+html[data-theme="dark"] .chart-gridline{background:linear-gradient(90deg,rgba(130,190,202,.035),rgba(130,190,202,.15) 50%,rgba(130,190,202,.035))}
+html[data-theme="dark"] .chart-y-axis{background:transparent;color:#9aafb8}
+html[data-theme="dark"] .chart-area-line{stroke:#61d5e2}
+html[data-theme="dark"] .chart-area-glow{stroke:#57e0d0;opacity:.14}
+html[data-theme="dark"] .chart-average-line{stroke:#e7bd65}
+html[data-theme="dark"] .chart-live-readout{border-color:#36545d;background:rgba(14,33,40,.92)}
+html[data-theme="dark"] .chart-readout-label{color:#73c4bd}
+html[data-theme="dark"] .chart-readout-date{color:#9ab2ba}
+html[data-theme="dark"] .chart-live-readout>strong{color:#e6f4f5}
+html[data-theme="dark"] .chart-x-label{color:#9fb6bf}
+html[data-theme="dark"] .chart-legend{color:#91a8b1}
+html[data-theme="dark"] .chart-point::before{border-color:#e4feff;background:#53c8d6;box-shadow:0 0 0 2px rgba(83,200,214,.17)}
+html[data-theme="dark"] .chart-point.is-peak::before{border-color:#fff8e5;background:#f2c35f}
+html[data-theme="dark"] .chart-peak-guide{stroke:#e7bd65}
+@media(max-width:760px){
+  .chart-panel{padding:15px 12px 12px}
+  .chart-heading{margin-bottom:11px;padding-bottom:11px}
+  .chart-heading h2{font-size:17px}
+  .chart-heading .eyebrow{font-size:7px;letter-spacing:1.2px}
+  .chart-subtitle{font-size:9px}
+  .chart-unit{padding:5px 8px;font-size:8px}
+  .chart-meta{grid-template-columns:minmax(0,1fr);gap:11px;margin-bottom:11px;padding-bottom:11px}
+  .chart-total-value{font-size:23px}
+  .chart-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .chart-kpi{gap:5px;padding:0 7px}
+  .chart-kpi:first-child{padding-left:0;border-left:0}
+  .chart-kpi>span{font-size:6px;letter-spacing:.4px}
+  .chart-kpi>strong{font-size:9px}
+  .chart-kpi.kpi-peak>strong{font-size:8px}
+  .chart-layout{grid-template-columns:minmax(0,1fr) 45px}
+  .chart-y-axis{height:196px;min-width:45px;font-size:7px}
+  .chart-y-axis span{right:6px}
+  .chart-plot-area{height:196px}
+  .chart-x-axis{height:23px}
+  .chart-x-label{font-size:7px}
+  .chart-live-readout{top:7px;right:6px;min-width:123px;gap:4px 7px;padding:7px 8px}
+  .chart-readout-label{font-size:6px}
+  .chart-readout-date{font-size:7px}
+  .chart-live-readout>strong{font-size:10px}
+  .chart-legend{gap:8px 14px;flex-wrap:wrap;font-size:7px}
+}
+@media(max-width:390px){
+  .chart-heading{gap:7px}
+  .chart-heading .eyebrow{letter-spacing:.7px}
+  .chart-unit{font-size:7px}
+  .chart-layout{grid-template-columns:minmax(0,1fr) 41px}
+  .chart-y-axis{min-width:41px}
+  .chart-kpi{padding-inline:5px}
+  .chart-kpi>strong{font-size:8px}
+}
+
 /* To-fresco brand lockup: expressive color, confident type, compact mobile fit. */
 .brand-kicker{display:flex;align-items:center;gap:8px;margin:0 0 5px;color:#b47c1e;font-size:8px;font-weight:850;letter-spacing:2.25px;text-transform:uppercase}
 .brand-kicker::after{width:30px;height:1px;background:linear-gradient(90deg,#e8b64b,rgba(232,182,75,0));content:''}
@@ -685,3 +1172,22 @@ html[data-theme="dark"] .activity-country{color:#a9dbe4}
 html[data-theme="dark"] .activity-ip{color:#9aaeb8}
 .privacy-note{max-width:760px;margin:5px auto 0;color:#81929a;font-size:10px;line-height:1.5;text-align:center}
 html[data-theme="dark"] .privacy-note{color:#9aadb8}
+/* Compact internal scrolling for long forms and ledgers */
+#sales-view .table-panel[aria-labelledby="table-title"] .table-container{max-height:min(340px,48vh);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.investment-form,.wallet-form{max-height:min(300px,38vh);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable}
+.investment-table-wrap,.wallet-table-wrap{max-height:min(340px,48vh);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.activity-table-wrap{max-height:min(430px,55vh);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.table-container thead th{position:sticky;top:0;z-index:2}
+.wallet-form-actions{align-items:center}
+.wallet-form-actions .wallet-action-income{border-color:#269b79;background:linear-gradient(135deg,#27a77f,#238567);color:#fff}
+.wallet-form-actions .wallet-action-expense{border-color:#cf7554;background:linear-gradient(135deg,#d47a55,#b85b3c);color:#fff}
+.wallet-form-actions .wallet-action-income:hover{filter:brightness(1.06)}
+.wallet-form-actions .wallet-action-expense:hover{filter:brightness(1.06)}
+html[data-theme="dark"] .wallet-form-actions .wallet-action-income{border-color:#39b991;background:linear-gradient(135deg,#208d71,#176c5b);color:#effff9}
+html[data-theme="dark"] .wallet-form-actions .wallet-action-expense{border-color:#d27b59;background:linear-gradient(135deg,#a9553a,#7e3e32);color:#fff5ee}
+@media(max-width:650px){
+  .investment-form,.wallet-form{max-height:min(430px,52vh);padding-bottom:18px}
+  #sales-view .table-panel[aria-labelledby="table-title"] .table-container,.investment-table-wrap,.wallet-table-wrap{max-height:42vh}
+  .activity-table-wrap{max-height:50vh}
+  .wallet-form-actions .button{flex:1 1 100%;min-height:42px}
+}
