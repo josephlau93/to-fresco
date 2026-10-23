@@ -1,8 +1,8 @@
 {
     "id":  "/",
-    "name":  "Glaciar Gourmet | Registro de ventas",
-    "short_name":  "Glaciar Gourmet",
-    "description":  "Control de ventas, inversiones y billetera de Glaciar Gourmet.",
+    "name":  "To-fresco | Registro de ventas",
+    "short_name":  "To-fresco",
+    "description":  "Control de ventas, inversiones y billetera de To-fresco.",
     "lang":  "es",
     "start_url":  "/",
     "scope":  "/",
