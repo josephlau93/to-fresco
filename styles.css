@@ -1527,3 +1527,34 @@ html[data-theme="dark"] .access-status-deleted{border-color:#594a48;background:#
   .access-plan-controls{align-items:stretch;flex-direction:column}
   .access-plan-controls select,.access-plan-controls .button{width:100%}
 }
+
+
+/* Persistent attention for operator approval and plan renewal requests */
+.main-tab.has-pending{color:#8b5414}
+.main-tab.has-pending .access-pending-badge{border-color:#e4a938;background:linear-gradient(135deg,#ffe08a,#ffc34b);color:#59380b}
+.access-admin-count-pending{color:#a86712;font-weight:850}
+.access-request-pending>td{animation:access-request-row-pulse 1.9s ease-in-out infinite;border-top-color:rgba(242,177,63,.55);border-bottom-color:rgba(242,177,63,.55)}
+.access-request-pending>td:first-child{box-shadow:inset 3px 0 0 #f0ad35}
+.access-request-flag,.access-request-plan{display:inline-flex;align-items:center;gap:5px;margin:5px 3px 0;padding:4px 7px;border:1px solid #e8bd69;border-radius:999px;background:#fff4d6;color:#8d5b12;font-size:9px;font-weight:850;white-space:nowrap}
+.access-request-flag:before{width:6px;height:6px;border-radius:50%;background:#eaa52b;box-shadow:0 0 0 3px rgba(234,165,43,.17);content:'';animation:access-request-dot 1.3s ease-in-out infinite}
+.access-request-plan{margin-top:4px;border-color:#e7c979;background:#fff9e9}
+.access-request-pending .access-request-plan{animation:access-request-plan-pulse 1.9s ease-in-out infinite}
+@keyframes access-request-row-pulse{
+  0%,100%{background-color:rgba(250,190,71,.035)}
+  50%{background-color:rgba(250,190,71,.15)}
+}
+@keyframes access-request-plan-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(234,165,43,.04)}
+  50%{box-shadow:0 0 0 4px rgba(234,165,43,.18)}
+}
+@keyframes access-request-dot{
+  0%,100%{transform:scale(1);opacity:.9}
+  50%{transform:scale(1.28);opacity:.58}
+}
+html[data-theme="dark"] .main-tab.has-pending{color:#ffcf73}
+html[data-theme="dark"] .main-tab.has-pending .access-pending-badge{border-color:#a9762e;background:linear-gradient(135deg,#67451c,#9e6823);color:#ffecbf}
+html[data-theme="dark"] .access-admin-count-pending{color:#ffcf73}
+html[data-theme="dark"] .access-request-pending>td{border-top-color:rgba(245,184,67,.35);border-bottom-color:rgba(245,184,67,.35)}
+html[data-theme="dark"] .access-request-pending>td:first-child{box-shadow:inset 3px 0 0 #d99b31}
+html[data-theme="dark"] .access-request-flag,html[data-theme="dark"] .access-request-plan{border-color:#765b2c;background:#382f1e;color:#ffdc96}
+html[data-theme="dark"] .access-request-flag:before{background:#f0b847;box-shadow:0 0 0 3px rgba(240,184,71,.16)}

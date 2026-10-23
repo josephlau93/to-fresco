@@ -119,6 +119,10 @@ accessAdminTab.dataset.view = 'access-admin-view';
 accessAdminTab.setAttribute('aria-controls', 'access-admin-view');
 accessAdminTab.setAttribute('aria-selected', 'false');
 accessAdminTab.textContent = 'Usuarios';
+const accessAdminBadge = document.createElement('span');
+accessAdminBadge.className = 'tab-badge access-pending-badge';
+accessAdminBadge.hidden = true;
+accessAdminTab.append(accessAdminBadge);
 accessAdminTab.hidden = true;
 mainTabs.append(accessAdminTab);
 const accessAdminView = document.createElement('section');
@@ -180,6 +184,8 @@ let businessAccessExpiresAt = null;
 let businessRequestedPlan = null;
 let accessMonitorTimer = null;
 let accessMonitorBusy = false;
+let accessRequestsMonitorTimer = null;
+let accessRequestsBusy = false;
 let monthKeys = [];
 let currentMonthSales = [];
 let visibleSales = [];
@@ -352,15 +358,22 @@ async function pollAccessStatus() {
 
 function startAccessMonitor() {
   if (accessMonitorTimer) clearInterval(accessMonitorTimer);
+  if (accessRequestsMonitorTimer) clearInterval(accessRequestsMonitorTimer);
   accessMonitorTimer = null;
-  if (businessRole !== 'owner' && businessAccessStatus !== 'setup_error') {
+  accessRequestsMonitorTimer = null;
+  if (businessRole === 'owner') {
+    loadAccessRequests();
+    accessRequestsMonitorTimer = window.setInterval(loadAccessRequests, 15000);
+  } else if (businessAccessStatus !== 'setup_error') {
     accessMonitorTimer = window.setInterval(pollAccessStatus, 15000);
   }
 }
 
 async function loadAccessRequests() {
-  if (!currentUser || businessRole !== 'owner') return;
-  accessRequestsBody.innerHTML = '<tr><td colspan="6" class="loading">Cargando solicitudes…</td></tr>';
+  if (!currentUser || businessRole !== 'owner' || accessRequestsBusy) return;
+  accessRequestsBusy = true;
+  try {
+  if (!accessRequestsBody.children.length) accessRequestsBody.innerHTML = '<tr><td colspan="6" class="loading">Cargando solicitudes…</td></tr>';
   setMessage(accessAdminMessage);
   const { data, error } = await supabase.from('business_user_access')
     .select('user_id, email, role, status, plan, expires_at, requested_plan, requested_plan_at, requested_at, reviewed_at')
@@ -372,7 +385,13 @@ async function loadAccessRequests() {
     setMessage(accessAdminMessage, `Ejecuta supabase/user-approval.sql en Supabase > SQL Editor. Error: ${error.message}`, 'error');
     return;
   }
-  accessAdminCount.textContent = `${data.length} ${data.length === 1 ? 'cuenta' : 'cuentas'}`;
+  const pendingDecisionCount = data.filter((item) => item.status === 'pending' || Boolean(item.requested_plan)).length;
+  accessAdminBadge.textContent = String(pendingDecisionCount);
+  accessAdminBadge.hidden = pendingDecisionCount === 0;
+  accessAdminTab.classList.toggle('has-pending', pendingDecisionCount > 0);
+  accessAdminTab.setAttribute('aria-label', pendingDecisionCount ? 'Usuarios, ' + pendingDecisionCount + ' solicitudes pendientes' : 'Usuarios');
+  accessAdminCount.textContent = pendingDecisionCount + (pendingDecisionCount === 1 ? ' solicitud pendiente · ' : ' solicitudes pendientes · ') + data.length + (data.length === 1 ? ' cuenta' : ' cuentas');
+  accessAdminCount.classList.toggle('access-admin-count-pending', pendingDecisionCount > 0);
   accessRequestsBody.replaceChildren();
   if (!data.length) {
     const row = document.createElement('tr');
@@ -395,20 +414,34 @@ async function loadAccessRequests() {
   for (const item of data) {
     const row = document.createElement('tr');
     row.dataset.userId = item.user_id;
+    const hasPendingDecision = item.status === 'pending' || Boolean(item.requested_plan);
+    row.classList.toggle('access-request-pending', hasPendingDecision);
     const emailCell = document.createElement('td');
     emailCell.textContent = item.email || 'Correo no disponible';
     const dateCell = document.createElement('td');
-    dateCell.textContent = new Date(item.requested_at).toLocaleString('es-CU', { dateStyle: 'short', timeStyle: 'short' });
+    const decisionDate = item.requested_plan_at || item.requested_at;
+    dateCell.textContent = new Date(decisionDate).toLocaleString('es-CU', { dateStyle: 'short', timeStyle: 'short' });
     const statusCell = document.createElement('td');
     const status = document.createElement('span');
     const isExpired = item.status === 'active' && item.expires_at && new Date(item.expires_at).getTime() <= Date.now();
     status.className = 'access-status access-status-' + (isExpired ? 'expired' : item.status);
     status.textContent = isExpired ? 'Vencida · bloqueada' : statusLabels[item.status] || item.status;
     statusCell.append(status);
+    if (hasPendingDecision) {
+      const pendingFlag = document.createElement('span');
+      pendingFlag.className = 'access-request-flag';
+      pendingFlag.textContent = item.requested_plan ? 'Decisión pendiente' : 'Aprobación pendiente';
+      statusCell.append(pendingFlag);
+    }
     const planCell = document.createElement('td');
     const activePlan = planLabels[item.plan] || 'Sin plan';
-    const requestedPlan = item.requested_plan ? ' · Solicita: ' + (planLabels[item.requested_plan] || item.requested_plan) : '';
-    planCell.textContent = activePlan + requestedPlan;
+    planCell.textContent = activePlan;
+    if (item.requested_plan) {
+      const requestedPlanFlag = document.createElement('span');
+      requestedPlanFlag.className = 'access-request-plan';
+      requestedPlanFlag.textContent = 'Solicita: ' + (planLabels[item.requested_plan] || item.requested_plan);
+      planCell.append(requestedPlanFlag);
+    }
     const expiryCell = document.createElement('td');
     const expired = item.status === 'active' && item.expires_at && new Date(item.expires_at).getTime() <= Date.now();
     expiryCell.textContent = item.expires_at ? formatAccessDate(item.expires_at) + (expired ? ' · vencida' : '') : item.status === 'active' ? 'Sin vencimiento' : '—';
@@ -437,6 +470,9 @@ async function loadAccessRequests() {
     row.append(emailCell, dateCell, planCell, expiryCell, statusCell, actionsCell);
     accessRequestsBody.append(row);
   }
+  } finally {
+    accessRequestsBusy = false;
+  }
 }
 
 async function handleAccessAction(event) {
@@ -462,6 +498,7 @@ async function handleAccessAction(event) {
     return;
   }
   setMessage(accessAdminMessage, 'Estado actualizado: ' + { active: 'activa / plan renovado', denied: 'denegada', paused: 'pausada', deleted: 'eliminada' }[status] + '.', 'success');
+  for (let attempt = 0; accessRequestsBusy && attempt < 40; attempt += 1) await new Promise((resolve) => window.setTimeout(resolve, 50));
   await loadAccessRequests();
 }
 
@@ -1798,7 +1835,11 @@ function showSignedOut() {
   document.querySelector('#activity-tab').hidden = true;
   accessNotice.hidden = true;
   if (accessMonitorTimer) clearInterval(accessMonitorTimer);
+  if (accessRequestsMonitorTimer) clearInterval(accessRequestsMonitorTimer);
   accessMonitorTimer = null;
+  accessRequestsMonitorTimer = null;
+  accessAdminBadge.hidden = true;
+  accessAdminTab.classList.remove('has-pending');
   authPanel.hidden = false;
   appPanel.hidden = true;
   sessionArea.hidden = true;
