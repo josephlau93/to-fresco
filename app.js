@@ -56,6 +56,70 @@ const productsDialog = document.querySelector('#products-dialog');
 const productForm = document.querySelector('#product-form');
 const productsBody = document.querySelector('#products-body');
 const themeToggle = document.querySelector('#theme-toggle');
+const OWNER_ACCOUNT_ID = '2dc2b8eb-8e7f-4431-a15b-70fa4705102a';
+const authTitle = document.querySelector('#auth-title');
+const authDescription = authPanel.querySelector(':scope > p');
+const authSubmitButton = authForm.querySelector('button[type="submit"]');
+const authModeToggle = document.createElement('button');
+authModeToggle.type = 'button';
+authModeToggle.className = 'auth-mode-toggle';
+authModeToggle.textContent = '¿Eres operador nuevo? Solicita una cuenta';
+authForm.querySelector('.auth-actions').append(authModeToggle);
+let authMode = 'login';
+const accessGate = document.createElement('section');
+accessGate.id = 'access-gate';
+accessGate.className = 'panel access-gate';
+accessGate.hidden = true;
+accessGate.innerHTML = '<span class="access-gate-mark" aria-hidden="true">◷</span><p class="eyebrow">ACCESO CONTROLADO</p><h2 id="access-gate-title">Solicitud recibida</h2><p id="access-gate-copy" role="status"></p><button id="access-gate-refresh" class="button button-light" type="button">Comprobar acceso</button>';
+authPanel.after(accessGate);
+const accessGateTitle = accessGate.querySelector('#access-gate-title');
+const accessGateCopy = accessGate.querySelector('#access-gate-copy');
+const accessGateRefresh = accessGate.querySelector('#access-gate-refresh');
+const accessNotice = document.createElement('p');
+accessNotice.id = 'access-approved-notice';
+accessNotice.className = 'access-approved-notice';
+accessNotice.setAttribute('role', 'status');
+accessNotice.hidden = true;
+appPanel.prepend(accessNotice);
+const mainTabs = appPanel.querySelector('.main-tabs');
+const accessAdminTab = document.createElement('button');
+accessAdminTab.id = 'access-admin-tab';
+accessAdminTab.className = 'main-tab';
+accessAdminTab.type = 'button';
+accessAdminTab.setAttribute('role', 'tab');
+accessAdminTab.dataset.view = 'access-admin-view';
+accessAdminTab.setAttribute('aria-controls', 'access-admin-view');
+accessAdminTab.setAttribute('aria-selected', 'false');
+accessAdminTab.textContent = 'Usuarios';
+accessAdminTab.hidden = true;
+mainTabs.append(accessAdminTab);
+const accessAdminView = document.createElement('section');
+accessAdminView.id = 'access-admin-view';
+accessAdminView.className = 'access-admin-view';
+accessAdminView.setAttribute('role', 'tabpanel');
+accessAdminView.setAttribute('aria-labelledby', 'access-admin-tab');
+accessAdminView.hidden = true;
+accessAdminView.innerHTML = '<section class="panel access-admin-panel"><div class="table-heading"><div><p class="eyebrow">CONTROL DE CUENTAS</p><h2>Acceso de operadores</h2><span class="record-indicator"><span class="online-dot"></span><span id="access-admin-count">Cargando solicitudes</span></span></div><button id="access-admin-refresh" class="button button-light" type="button">↻ Actualizar</button></div><p class="access-admin-note">Las cuentas nuevas no ven el sitio hasta que las actives. Pausar o denegar revoca el acceso a los datos.</p><div class="table-container access-admin-table-wrap"><table><thead><tr><th>Usuario</th><th>Solicitud</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="access-requests-body"><tr><td colspan="4" class="loading">Cargando solicitudes…</td></tr></tbody></table></div><p id="access-admin-message" class="message" role="status"></p></section>';
+appPanel.append(accessAdminView);
+const accessRequestsBody = accessAdminView.querySelector('#access-requests-body');
+const accessAdminCount = accessAdminView.querySelector('#access-admin-count');
+const accessAdminMessage = accessAdminView.querySelector('#access-admin-message');
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const registering = mode === 'register';
+  authTitle.textContent = registering ? 'Solicita acceso como operador' : 'Accede a tus ventas';
+  authDescription.textContent = registering
+    ? 'Crea tu cuenta de operador. El sitio quedará bloqueado hasta que el propietario active tu acceso.'
+    : 'Inicia sesión para consultar tus registros protegidos.';
+  authSubmitButton.textContent = registering ? 'Crear cuenta de operador' : 'Iniciar sesión';
+  authModeToggle.textContent = registering ? '¿Ya tienes cuenta? Iniciar sesión' : '¿Eres operador nuevo? Solicita una cuenta';
+  setMessage(authMessage);
+}
+authModeToggle.addEventListener('click', () => setAuthMode(authMode === 'login' ? 'register' : 'login'));
+accessGateRefresh.addEventListener('click', () => refreshAccessStatus());
+document.querySelector('#access-admin-refresh').addEventListener('click', () => loadAccessRequests());
+accessRequestsBody.addEventListener('click', (event) => handleAccessAction(event));
 
 function setTheme(theme, persist = false) {
   const isDark = theme === 'dark';
@@ -79,6 +143,10 @@ themeToggle.addEventListener('click', () => {
 let supabase;
 let currentUser;
 let businessOwnerId = null;
+let businessRole = 'unknown';
+let businessAccessStatus = 'unknown';
+let accessMonitorTimer = null;
+let accessMonitorBusy = false;
 let monthKeys = [];
 let currentMonthSales = [];
 let visibleSales = [];
@@ -115,12 +183,176 @@ const ACTIVITY_FIELD_LABELS = {
 };
 
 async function loadUserAccess(user) {
-  businessOwnerId = user.id;
-  const { data, error } = await supabase.from('business_members')
-    .select('owner_user_id, role').eq('member_user_id', user.id).maybeSingle();
-  if (!error && data) {
-    businessOwnerId = data.owner_user_id;
+  if (user.id === OWNER_ACCOUNT_ID) {
+    businessOwnerId = OWNER_ACCOUNT_ID;
+    businessRole = 'owner';
+    businessAccessStatus = 'active';
+    return { status: businessAccessStatus, role: businessRole };
   }
+  const { data, error } = await supabase.from('business_user_access')
+    .select('business_owner_id, role, status, email').eq('user_id', user.id).maybeSingle();
+  if (error) {
+    businessOwnerId = null;
+    businessRole = 'sales_operator';
+    businessAccessStatus = 'setup_error';
+    return { status: businessAccessStatus, role: businessRole, error };
+  }
+  if (!data) {
+    businessOwnerId = null;
+    businessRole = 'sales_operator';
+    businessAccessStatus = 'missing';
+    return { status: businessAccessStatus, role: businessRole };
+  }
+  businessRole = data.role;
+  businessAccessStatus = data.status;
+  businessOwnerId = data.status === 'active' ? data.business_owner_id : null;
+  return { status: businessAccessStatus, role: businessRole };
+}
+
+function showAccessGate() {
+  authPanel.hidden = true;
+  appPanel.hidden = true;
+  accessGate.hidden = false;
+  sessionArea.hidden = false;
+  document.querySelector('#user-email').textContent = currentUser?.email ?? '';
+  accessAdminTab.hidden = true;
+  mainTabs.classList.remove('has-owner-tab');
+  document.querySelector('#activity-tab').hidden = true;
+  if (businessAccessStatus === 'pending') {
+    accessGateTitle.textContent = 'Solicitud pendiente de aprobación';
+    accessGateCopy.textContent = 'El propietario revisará tu solicitud. Las ventas, inversiones, billetera y actividad permanecerán ocultas. Esta pantalla comprobará el estado automáticamente cada 15 segundos.';
+  } else if (businessAccessStatus === 'paused') {
+    accessGateTitle.textContent = 'Acceso pausado';
+    accessGateCopy.textContent = 'El propietario pausó temporalmente esta cuenta. No puedes consultar ni modificar los datos. El estado se comprobará automáticamente.';
+  } else if (businessAccessStatus === 'denied') {
+    accessGateTitle.textContent = 'Acceso denegado';
+    accessGateCopy.textContent = 'El propietario no activó esta cuenta. Contacta con él si consideras que se trata de un error.';
+  } else if (businessAccessStatus === 'setup_error') {
+    accessGateTitle.textContent = 'Falta configurar el control de acceso';
+    accessGateCopy.textContent = 'El propietario debe ejecutar el archivo supabase/user-approval.sql en Supabase para habilitar el registro y la aprobación de operadores.';
+  } else {
+    accessGateTitle.textContent = 'Cuenta sin autorización';
+    accessGateCopy.textContent = 'Esta cuenta no tiene una solicitud de operador. Contacta al propietario para recibir acceso.';
+  }
+}
+
+async function refreshAccessStatus() {
+  if (!currentUser) return;
+  const previous = businessAccessStatus;
+  accessGateRefresh.disabled = true;
+  accessGateRefresh.textContent = 'Comprobando…';
+  await loadUserAccess(currentUser);
+  if (businessAccessStatus === 'active') await showSignedIn(currentUser, previous);
+  else showAccessGate();
+  accessGateRefresh.disabled = false;
+  accessGateRefresh.textContent = 'Comprobar acceso';
+}
+
+async function pollAccessStatus() {
+  if (!currentUser || businessRole === 'owner' || accessMonitorBusy) return;
+  accessMonitorBusy = true;
+  try {
+    const previous = businessAccessStatus;
+    await loadUserAccess(currentUser);
+    if (businessAccessStatus !== previous) await showSignedIn(currentUser, previous);
+  } finally {
+    accessMonitorBusy = false;
+  }
+}
+
+function startAccessMonitor() {
+  if (accessMonitorTimer) clearInterval(accessMonitorTimer);
+  accessMonitorTimer = null;
+  if (businessRole !== 'owner' && businessAccessStatus !== 'setup_error') {
+    accessMonitorTimer = window.setInterval(pollAccessStatus, 15000);
+  }
+}
+
+async function loadAccessRequests() {
+  if (!currentUser || businessRole !== 'owner') return;
+  accessRequestsBody.innerHTML = '<tr><td colspan="4" class="loading">Cargando solicitudes…</td></tr>';
+  setMessage(accessAdminMessage);
+  const { data, error } = await supabase.from('business_user_access')
+    .select('user_id, email, role, status, requested_at, reviewed_at')
+    .eq('business_owner_id', OWNER_ACCOUNT_ID)
+    .order('requested_at', { ascending: false });
+  if (error) {
+    accessAdminCount.textContent = 'No disponible';
+    accessRequestsBody.innerHTML = '<tr><td colspan="4" class="loading">No se pudo cargar el control de usuarios.</td></tr>';
+    setMessage(accessAdminMessage, `Ejecuta supabase/user-approval.sql en Supabase > SQL Editor. Error: ${error.message}`, 'error');
+    return;
+  }
+  accessAdminCount.textContent = `${data.length} ${data.length === 1 ? 'cuenta' : 'cuentas'}`;
+  accessRequestsBody.replaceChildren();
+  if (!data.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 4;
+    cell.className = 'loading';
+    cell.textContent = 'Aún no hay solicitudes de operador.';
+    row.append(cell);
+    accessRequestsBody.append(row);
+    return;
+  }
+  const statusLabels = { pending: 'Pendiente', active: 'Activa', denied: 'Denegada', paused: 'Pausada' };
+  const actionsByStatus = {
+    pending: [['active', 'Activar'], ['denied', 'Denegar']],
+    active: [['paused', 'Pausar'], ['denied', 'Denegar']],
+    paused: [['active', 'Activar'], ['denied', 'Denegar']],
+    denied: [['active', 'Activar'], ['paused', 'Pausar']],
+  };
+  for (const item of data) {
+    const row = document.createElement('tr');
+    row.dataset.userId = item.user_id;
+    const emailCell = document.createElement('td');
+    emailCell.textContent = item.email || 'Correo no disponible';
+    const dateCell = document.createElement('td');
+    dateCell.textContent = new Date(item.requested_at).toLocaleString('es-CU', { dateStyle: 'short', timeStyle: 'short' });
+    const statusCell = document.createElement('td');
+    const status = document.createElement('span');
+    status.className = `access-status access-status-${item.status}`;
+    status.textContent = statusLabels[item.status] || item.status;
+    statusCell.append(status);
+    const actionsCell = document.createElement('td');
+    const actions = document.createElement('div');
+    actions.className = 'access-row-actions';
+    for (const [nextStatus, label] of actionsByStatus[item.status] || []) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `button button-light access-action access-action-${nextStatus}`;
+      button.dataset.accessStatus = nextStatus;
+      button.dataset.userId = item.user_id;
+      button.textContent = label;
+      actions.append(button);
+    }
+    actionsCell.append(actions);
+    row.append(emailCell, dateCell, statusCell, actionsCell);
+    accessRequestsBody.append(row);
+  }
+}
+
+async function handleAccessAction(event) {
+  const button = event.target.closest('button[data-access-status]');
+  if (!button || businessRole !== 'owner') return;
+  const status = button.dataset.accessStatus;
+  const confirmation = {
+    active: '¿Activar esta cuenta? El operador podrá ver y modificar los datos del negocio.',
+    denied: '¿Denegar esta solicitud? La cuenta no podrá entrar al sitio.',
+    paused: '¿Pausar esta cuenta? Se revocará su acceso a los datos.',
+  }[status];
+  if (!window.confirm(confirmation)) return;
+  button.disabled = true;
+  const { error } = await supabase.rpc('review_business_user', {
+    p_user_id: button.dataset.userId,
+    p_status: status,
+  });
+  if (error) {
+    setMessage(accessAdminMessage, `No se pudo actualizar el acceso: ${error.message}`, 'error');
+    button.disabled = false;
+    return;
+  }
+  setMessage(accessAdminMessage, `Estado actualizado: ${{ active: 'activa', denied: 'denegada', paused: 'pausada' }[status]}.`, 'success');
+  await loadAccessRequests();
 }
 
 function renderProductOptions(preferredName = 'Hielo Gourmet') {
@@ -1389,28 +1621,70 @@ async function loadProducts(preferredName = productSelect.selectedOptions[0]?.te
   return true;
 }
 
-async function showSignedIn(user) {
+async function showSignedIn(user, previousAccessStatus = null) {
   currentUser = user;
   await loadUserAccess(user);
-  document.querySelector('#activity-tab').hidden = user.id !== businessOwnerId;
+  if (businessAccessStatus !== 'active') {
+    showAccessGate();
+    startAccessMonitor();
+    if (user.email) {
+      try { localStorage.setItem('toFrescoPendingAccessEmail', user.email); } catch { /* Storage can be unavailable in private mode. */ }
+    }
+    return;
+  }
+
+  if (accessMonitorTimer) clearInterval(accessMonitorTimer);
+  accessMonitorTimer = null;
+  accessGate.hidden = true;
   authPanel.hidden = true;
   appPanel.hidden = false;
   sessionArea.hidden = false;
   document.querySelector('#user-email').textContent = user.email ?? '';
+  document.querySelector('#activity-tab').hidden = businessRole !== 'owner';
+  accessAdminTab.hidden = businessRole !== 'owner';
+  mainTabs.classList.toggle('has-owner-tab', businessRole === 'owner');
+  accessAdminView.hidden = true;
+  document.querySelectorAll('.main-tab').forEach((tab) => {
+    const active = tab.dataset.view === 'sales-view';
+    tab.classList.toggle('is-active', active);
+    tab.setAttribute('aria-selected', String(active));
+  });
+
   await loadMonthArchive();
   await loadInvestments();
   await loadProducts();
   await loadPendingSales();
   await loadSales();
   await loadWallet();
+
+  let pendingEmail = '';
+  try { pendingEmail = localStorage.getItem('toFrescoPendingAccessEmail') || ''; } catch { /* Storage can be unavailable in private mode. */ }
+  if (businessRole === 'sales_operator' && (previousAccessStatus && previousAccessStatus !== 'active' || pendingEmail === user.email)) {
+    accessNotice.textContent = 'El propietario activó tu cuenta. Ya puedes utilizar To-fresco.';
+    accessNotice.hidden = false;
+    window.setTimeout(() => { accessNotice.hidden = true; }, 9000);
+    try { localStorage.removeItem('toFrescoPendingAccessEmail'); } catch { /* Ignore unavailable storage. */ }
+  }
+  startAccessMonitor();
 }
 
 function showSignedOut() {
   currentUser = null;
   businessOwnerId = null;
+  businessRole = 'unknown';
+  businessAccessStatus = 'unknown';
+  accessGate.hidden = true;
+  accessAdminView.hidden = true;
+  accessAdminTab.hidden = true;
+  mainTabs.classList.remove('has-owner-tab');
+  document.querySelector('#activity-tab').hidden = true;
+  accessNotice.hidden = true;
+  if (accessMonitorTimer) clearInterval(accessMonitorTimer);
+  accessMonitorTimer = null;
   authPanel.hidden = false;
   appPanel.hidden = true;
   sessionArea.hidden = true;
+  setAuthMode('login');
   investmentItems = [];
   investmentsLoaded = false;
   walletTransactions = [];
@@ -1609,6 +1883,7 @@ document.querySelectorAll('.main-tab').forEach((tab) => {
     document.querySelector('#investment-view').hidden = targetView !== 'investment-view';
     document.querySelector('#wallet-view').hidden = targetView !== 'wallet-view';
     document.querySelector('#activity-view').hidden = targetView !== 'activity-view';
+    accessAdminView.hidden = targetView !== 'access-admin-view';
     document.querySelectorAll('.main-tab').forEach((item) => {
       const active = item === tab;
       item.classList.toggle('is-active', active);
@@ -1617,6 +1892,7 @@ document.querySelectorAll('.main-tab').forEach((tab) => {
     if (targetView === 'investment-view') window.requestAnimationFrame(replayInvestmentProgress);
     if (targetView === 'wallet-view') loadWallet();
     if (targetView === 'activity-view') loadActivityLogs();
+    if (targetView === 'access-admin-view') loadAccessRequests();
   });
 });
 
@@ -1640,14 +1916,35 @@ if (SUPABASE_URL.includes('YOUR_PROJECT_ID') || SUPABASE_PUBLISHABLE_KEY.include
 
   authForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const email = document.querySelector('#email').value.trim();
+    const password = document.querySelector('#password').value;
+    if (authMode === 'register') {
+      setMessage(authMessage, 'Verificando el control de acceso…');
+      const { data: configured, error: setupError } = await supabase.rpc('registration_is_configured');
+      if (setupError || configured !== true) {
+        setMessage(authMessage, 'El propietario debe ejecutar primero supabase/user-approval.sql en Supabase > SQL Editor. No se creó ninguna cuenta.', 'error');
+        return;
+      }
+      setMessage(authMessage, 'Creando cuenta de operador…');
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { requested_role: 'sales_operator' } },
+      });
+      if (error) return setMessage(authMessage, error.message, 'error');
+      try { localStorage.setItem('toFrescoPendingAccessEmail', email); } catch { /* Storage can be unavailable in private mode. */ }
+      if (data.session?.user) {
+        await showSignedIn(data.session.user);
+      } else {
+        setAuthMode('login');
+        setMessage(authMessage, 'Registro recibido. Revisa tu correo si Supabase solicita confirmarlo. Después inicia sesión; el sitio seguirá bloqueado hasta que el propietario active tu cuenta.', 'success');
+      }
+      return;
+    }
     setMessage(authMessage, 'Iniciando sesión…');
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: document.querySelector('#email').value.trim(),
-      password: document.querySelector('#password').value,
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return setMessage(authMessage, error.message, 'error');
-    setMessage(authMessage);
-    if (data.user) showSignedIn(data.user);
+    if (data.user) await showSignedIn(data.user);
   });
 
   document.querySelector('#sign-out').addEventListener('click', async () => {
@@ -2126,4 +2423,12 @@ if (SUPABASE_URL.includes('YOUR_PROJECT_ID') || SUPABASE_PUBLISHABLE_KEY.include
     else showSignedOut();
   });
 }
+
+
+
+
+
+
+
+
 

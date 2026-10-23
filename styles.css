@@ -1455,3 +1455,48 @@ html[data-theme="dark"] .clean-chart-legend{color:#9bb0b8}
 .table-container thead{position:sticky;top:0;z-index:30}
 .table-container thead th{position:sticky!important;top:0!important;z-index:31!important;background-clip:padding-box;box-shadow:0 1px 0 rgba(15,35,44,.28)}
 html[data-theme="dark"] .table-container thead th{box-shadow:0 1px 0 rgba(0,0,0,.42)}
+
+/* Operator self-registration and owner approval screens */
+.auth-mode-toggle{margin-top:10px;border:0;background:transparent;color:#148c91;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+.auth-mode-toggle:hover{text-decoration:underline}
+.access-gate{max-width:650px;margin:20px auto;padding:clamp(24px,5vw,42px);text-align:center}
+.access-gate-mark{display:grid;width:58px;height:58px;place-items:center;margin:0 auto 14px;border:1px solid rgba(28,171,166,.22);border-radius:20px;background:linear-gradient(140deg,#e6fbf7,#fff3dc);color:#119a98;font-size:29px}
+.access-gate .eyebrow{color:#138f8f}
+.access-gate h2{margin:5px 0 10px;color:#193d4e;font-size:clamp(20px,4vw,27px)}
+.access-gate-copy,.access-gate>p:not(.eyebrow){max-width:52ch;margin:0 auto 20px;color:#6a818c;font-size:13px;line-height:1.65}
+.access-gate .button{min-width:180px}
+.access-approved-notice{margin:0 0 12px;padding:12px 15px;border:1px solid #97ddc5;border-radius:12px;background:linear-gradient(100deg,#e6fbf3,#f2fcf8);color:#177757;font-size:13px;font-weight:750}
+.access-admin-panel{margin-top:16px}
+.access-admin-note{margin:-5px 0 13px;color:#758993;font-size:12px;line-height:1.55}
+.access-admin-table-wrap{max-height:min(65vh,650px);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.access-admin-table-wrap table{min-width:680px}
+.access-status{display:inline-flex;align-items:center;padding:5px 9px;border:1px solid transparent;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap}
+.access-status-pending{border-color:#efd69b;background:#fff7df;color:#936618}
+.access-status-active{border-color:#a6dec7;background:#eaf9f1;color:#21774f}
+.access-status-denied{border-color:#f1c4bc;background:#fff0ec;color:#a44737}
+.access-status-paused{border-color:#e8ce9b;background:#fff5df;color:#93631b}
+.access-row-actions{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.access-row-actions .button{min-height:32px;padding:0 10px;font-size:10px}
+.access-action-active{border-color:#76cda7;color:#167550}
+.access-action-denied{border-color:#e8b3aa;color:#a24438}
+.access-action-paused{border-color:#dfc078;color:#8f651a}
+html[data-theme="dark"] .auth-mode-toggle{color:#69d8d0}
+html[data-theme="dark"] .access-gate-mark{border-color:#316c70;background:linear-gradient(140deg,#193b3e,#3b3325);color:#6de0d1}
+html[data-theme="dark"] .access-gate h2{color:#e2f0ee}
+html[data-theme="dark"] .access-gate-copy,html[data-theme="dark"] .access-gate>p:not(.eyebrow),html[data-theme="dark"] .access-admin-note{color:#a6b7bd}
+html[data-theme="dark"] .access-approved-notice{border-color:#2e735f;background:linear-gradient(100deg,#173b32,#1a302c);color:#9ce4c3}
+html[data-theme="dark"] .access-status-pending{border-color:#6b5734;background:#362f20;color:#f1d18a}
+html[data-theme="dark"] .access-status-active{border-color:#326b57;background:#1b352c;color:#9be0b8}
+html[data-theme="dark"] .access-status-denied{border-color:#74443e;background:#3b2624;color:#efaaa0}
+html[data-theme="dark"] .access-status-paused{border-color:#715b35;background:#393020;color:#ebcc82}
+@media(max-width:650px){
+  .access-gate{margin:14px auto;padding:24px 18px}
+  .access-admin-panel{padding:16px 11px 12px}
+  .access-admin-panel .table-heading{align-items:flex-start}
+  .access-admin-table-wrap{max-height:58vh}
+  .access-row-actions{min-width:180px}
+}
+@media(max-width:650px){
+  .main-tabs.has-owner-tab{justify-content:flex-start;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#35d9bb transparent}
+  .main-tabs.has-owner-tab .main-tab{flex:0 0 auto;min-width:max-content;padding-inline:11px}
+}
