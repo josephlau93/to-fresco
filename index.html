@@ -217,8 +217,8 @@
             <label>Hasta<input id="activity-to" type="date"></label>
           </div>
           <div class="table-container activity-table-wrap"><table>
-            <thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Área</th><th>Detalle</th></tr></thead>
-            <tbody id="activity-body"><tr><td colspan="5" class="loading">Cargando actividad…</td></tr></tbody>
+            <thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Área</th><th>Detalle</th><th>País / IP</th></tr></thead>
+            <tbody id="activity-body"><tr><td colspan="6" class="loading">Cargando actividad…</td></tr></tbody>
           </table></div>
           <div class="activity-footer"><p id="activity-message" class="message" role="status"></p><button id="activity-more" class="button button-light" type="button" hidden>Cargar más</button></div>
         </section>
@@ -290,7 +290,7 @@
         <div class="table-container product-table-wrap"><table><thead><tr><th>Producto</th><th>Precio base</th><th>Acciones</th></tr></thead><tbody id="products-body"><tr><td colspan="3" class="loading">Cargando catálogo…</td></tr></tbody></table></div>
       </div>
     </dialog>
-    <footer>Las ventas, el catálogo de productos y las inversiones quedan guardados en la base de datos de tu cuenta.</footer>
+    <footer>Las ventas, el catálogo de productos y las inversiones quedan guardados en la base de datos de tu cuenta.<p class="privacy-note">Para control y seguridad, la bitácora registra quién realizó cada cambio, su IP y el país aproximado. Solo el propietario puede consultar esos datos.</p></footer>
   </main>
   <script src="pwa.js" defer></script>
   <script type="module" src="app.js"></script>

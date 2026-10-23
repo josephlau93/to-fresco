@@ -603,6 +603,23 @@ function describeActivity(entry) {
   return details.length ? details.join(' · ').slice(0, 240) : `Registro ${String(entry.record_id || '').slice(0, 8)}`;
 }
 
+function formatActivityLocation(entry) {
+  const countryCode = String(entry.country_code || '').toUpperCase();
+  let countryLabel = 'País no detectado';
+  let flag = '';
+  if (/^[A-Z]{2}$/.test(countryCode) && countryCode !== 'XX') {
+    try { countryLabel = new Intl.DisplayNames(['es'], { type: 'region' }).of(countryCode) || countryCode; } catch { countryLabel = countryCode; }
+    flag = String.fromCodePoint(...Array.from(countryCode, (letter) => 127397 + letter.charCodeAt(0)));
+  }
+  const country = document.createElement('span');
+  country.className = 'activity-country';
+  country.textContent = `${flag}${flag ? ' ' : ''}${countryLabel}`;
+  const ip = document.createElement('span');
+  ip.className = 'activity-ip';
+  ip.textContent = entry.actor_ip || 'IP no detectada';
+  return [country, ip];
+}
+
 function renderActivityLogs() {
   if (!activityBody) return;
   activityBody.replaceChildren();
@@ -611,7 +628,7 @@ function renderActivityLogs() {
   if (!activityEntries.length) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 5;
+    cell.colSpan = 6;
     cell.className = 'loading';
     cell.textContent = 'No hay movimientos que coincidan con estos filtros.';
     row.append(cell);
@@ -631,6 +648,10 @@ function renderActivityLogs() {
       if (index === 4) cell.className = 'activity-detail-cell';
       row.append(cell);
     }
+    const locationCell = document.createElement('td');
+    locationCell.className = 'activity-location-cell';
+    for (const detail of formatActivityLocation(entry)) locationCell.append(detail);
+    row.append(locationCell);
     activityBody.append(row);
   }
 }
@@ -643,7 +664,7 @@ async function loadActivityLogs(reset = true) {
     activityBody.replaceChildren();
     const loadingRow = document.createElement('tr');
     const loadingCell = document.createElement('td');
-    loadingCell.colSpan = 5;
+    loadingCell.colSpan = 6;
     loadingCell.className = 'loading';
     loadingCell.textContent = 'Cargando actividad…';
     loadingRow.append(loadingCell);
@@ -656,7 +677,7 @@ async function loadActivityLogs(reset = true) {
   const fromFilter = document.querySelector('#activity-from').value;
   const toFilter = document.querySelector('#activity-to').value;
   let query = supabase.from('activity_log')
-    .select('id, business_owner_id, actor_user_id, actor_email, action, entity_table, record_id, old_record, new_record, created_at')
+    .select('id, business_owner_id, actor_user_id, actor_email, action, entity_table, record_id, old_record, new_record, actor_ip, country_code, created_at')
     .eq('business_owner_id', businessOwnerId)
     .order('created_at', { ascending: false }).order('id', { ascending: false });
   if (actorFilter === 'owner') query = query.eq('actor_user_id', businessOwnerId);
@@ -674,7 +695,7 @@ async function loadActivityLogs(reset = true) {
     activityHasMore = false;
     if (reset) {
       activityBody.replaceChildren();
-      setMessage(document.querySelector('#activity-message'), `Para activar la bitácora ejecuta supabase/activity-log.sql en Supabase > SQL Editor. Error: ${error.message}`, 'error');
+      setMessage(document.querySelector('#activity-message'), `Actualiza la bitácora ejecutando supabase/activity-log.sql en Supabase > SQL Editor. Error: ${error.message}`, 'error');
     } else {
       setMessage(document.querySelector('#activity-message'), `No se pudieron cargar más registros: ${error.message}`, 'error');
     }
