@@ -1342,3 +1342,62 @@ html[data-theme="dark"] .clean-chart-legend{color:#9bb0b8}
   #investment-view .table-panel[aria-labelledby="investment-table-title"],#wallet-view .table-panel[aria-labelledby="wallet-table-title"]{max-height:50vh}
   #activity-view .table-panel[aria-labelledby="activity-title"]{max-height:56vh}
 }
+/* To-fresco vivid scrollbars for the bounded, full-panel scrolling areas */
+#sales-view .table-panel[aria-labelledby="table-title"],
+#investment-view .investment-form,
+#investment-view .table-panel[aria-labelledby="investment-table-title"],
+#wallet-view .wallet-form,
+#wallet-view .table-panel[aria-labelledby="wallet-table-title"],
+#activity-view .table-panel[aria-labelledby="activity-title"]{
+  scrollbar-width:thin;
+  scrollbar-color:#35d9bb #14252e;
+}
+#sales-view .table-panel[aria-labelledby="table-title"]::-webkit-scrollbar,
+#investment-view .investment-form::-webkit-scrollbar,
+#investment-view .table-panel[aria-labelledby="investment-table-title"]::-webkit-scrollbar,
+#wallet-view .wallet-form::-webkit-scrollbar,
+#wallet-view .table-panel[aria-labelledby="wallet-table-title"]::-webkit-scrollbar,
+#activity-view .table-panel[aria-labelledby="activity-title"]::-webkit-scrollbar{
+  width:13px;
+  height:13px;
+}
+#sales-view .table-panel[aria-labelledby="table-title"]::-webkit-scrollbar-track,
+#investment-view .investment-form::-webkit-scrollbar-track,
+#investment-view .table-panel[aria-labelledby="investment-table-title"]::-webkit-scrollbar-track,
+#wallet-view .wallet-form::-webkit-scrollbar-track,
+#wallet-view .table-panel[aria-labelledby="wallet-table-title"]::-webkit-scrollbar-track,
+#activity-view .table-panel[aria-labelledby="activity-title"]::-webkit-scrollbar-track{
+  background:linear-gradient(180deg,rgba(20,37,46,.96),rgba(16,29,38,.96));
+  border:1px solid rgba(123,160,174,.16);
+  border-radius:999px;
+}
+#sales-view .table-panel[aria-labelledby="table-title"]::-webkit-scrollbar-thumb,
+#investment-view .investment-form::-webkit-scrollbar-thumb,
+#investment-view .table-panel[aria-labelledby="investment-table-title"]::-webkit-scrollbar-thumb,
+#wallet-view .wallet-form::-webkit-scrollbar-thumb,
+#wallet-view .table-panel[aria-labelledby="wallet-table-title"]::-webkit-scrollbar-thumb,
+#activity-view .table-panel[aria-labelledby="activity-title"]::-webkit-scrollbar-thumb{
+  min-height:38px;
+  background:linear-gradient(180deg,#40e4c7 0%,#21b9b4 52%,#f3bd55 100%);
+  border:3px solid transparent;
+  border-radius:999px;
+  background-clip:padding-box;
+  transition:filter .18s ease,box-shadow .18s ease;
+}
+#sales-view .table-panel[aria-labelledby="table-title"]::-webkit-scrollbar-thumb:hover,
+#investment-view .investment-form::-webkit-scrollbar-thumb:hover,
+#investment-view .table-panel[aria-labelledby="investment-table-title"]::-webkit-scrollbar-thumb:hover,
+#wallet-view .wallet-form::-webkit-scrollbar-thumb:hover,
+#wallet-view .table-panel[aria-labelledby="wallet-table-title"]::-webkit-scrollbar-thumb:hover,
+#activity-view .table-panel[aria-labelledby="activity-title"]::-webkit-scrollbar-thumb:hover{
+  filter:brightness(1.18);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.34),0 0 10px rgba(53,217,187,.32);
+}
+#sales-view .table-panel[aria-labelledby="table-title"]::-webkit-scrollbar-corner,
+#investment-view .investment-form::-webkit-scrollbar-corner,
+#investment-view .table-panel[aria-labelledby="investment-table-title"]::-webkit-scrollbar-corner,
+#wallet-view .wallet-form::-webkit-scrollbar-corner,
+#wallet-view .table-panel[aria-labelledby="wallet-table-title"]::-webkit-scrollbar-corner,
+#activity-view .table-panel[aria-labelledby="activity-title"]::-webkit-scrollbar-corner{
+  background:#14252e;
+}
