@@ -30,6 +30,22 @@ const editDialog = document.querySelector('#edit-dialog');
 const editForm = document.querySelector('#edit-form');
 const editMessage = document.querySelector('#edit-message');
 const investmentForm = document.querySelector('#investment-form');
+const investmentFormToggle = document.createElement('button');
+investmentFormToggle.type = 'button';
+investmentFormToggle.className = 'button investment-form-toggle';
+investmentFormToggle.textContent = '＋ Agregar inversión';
+investmentFormToggle.setAttribute('aria-controls', 'investment-form');
+investmentFormToggle.setAttribute('aria-expanded', 'false');
+investmentForm.before(investmentFormToggle);
+investmentForm.hidden = true;
+const scrollTopButton = document.createElement('button');
+scrollTopButton.type = 'button';
+scrollTopButton.className = 'scroll-top-button';
+scrollTopButton.setAttribute('aria-label', 'Volver arriba');
+scrollTopButton.setAttribute('title', 'Volver arriba');
+scrollTopButton.textContent = '↑';
+scrollTopButton.hidden = true;
+document.body.append(scrollTopButton);
 const investmentBody = document.querySelector('#investment-body');
 const walletForm = document.querySelector('#wallet-form');
 const walletBody = document.querySelector('#wallet-body');
@@ -1220,10 +1236,16 @@ function resetInvestmentForm() {
   document.querySelector('#investment-form-title').textContent = 'Agregar inversión';
   document.querySelector('#investment-save').textContent = 'Guardar inversión';
   document.querySelector('#investment-cancel').hidden = true;
+  investmentForm.hidden = true;
+  investmentFormToggle.textContent = '＋ Agregar inversión';
+  investmentFormToggle.setAttribute('aria-expanded', 'false');
   updateInvestmentPreview();
 }
 
 function editInvestment(item) {
+  investmentForm.hidden = false;
+  investmentFormToggle.textContent = '× Cerrar formulario';
+  investmentFormToggle.setAttribute('aria-expanded', 'true');
   document.querySelector('#investment-id').value = item.id;
   document.querySelector('#investment-product').value = item.product;
   document.querySelector('#investment-purchase').value = Number(item.purchase_usd).toFixed(2);
@@ -1598,6 +1620,13 @@ document.querySelectorAll('.main-tab').forEach((tab) => {
   });
 });
 
+function updateScrollTopButton() {
+  scrollTopButton.hidden = window.scrollY < 420;
+}
+window.addEventListener('scroll', updateScrollTopButton, { passive: true });
+scrollTopButton.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+updateScrollTopButton();
+
 document.querySelector('#activity-refresh').addEventListener('click', () => loadActivityLogs());
 document.querySelector('#activity-more').addEventListener('click', () => loadActivityLogs(false));
 for (const filter of ['activity-actor', 'activity-entity', 'activity-action', 'activity-from', 'activity-to']) {
@@ -1704,6 +1733,18 @@ if (SUPABASE_URL.includes('YOUR_PROJECT_ID') || SUPABASE_PUBLISHABLE_KEY.include
   });
 
   investmentForm.addEventListener('input', updateInvestmentPreview);
+  investmentFormToggle.addEventListener('click', () => {
+    if (!investmentForm.hidden) {
+      resetInvestmentForm();
+      return;
+    }
+    resetInvestmentForm();
+    investmentForm.hidden = false;
+    investmentFormToggle.textContent = '× Cerrar formulario';
+    investmentFormToggle.setAttribute('aria-expanded', 'true');
+    investmentForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.querySelector('#investment-product').focus({ preventScroll: true });
+  });
   document.querySelector('#investment-cancel').addEventListener('click', resetInvestmentForm);
   investmentForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -2085,3 +2126,4 @@ if (SUPABASE_URL.includes('YOUR_PROJECT_ID') || SUPABASE_PUBLISHABLE_KEY.include
     else showSignedOut();
   });
 }
+

@@ -1401,3 +1401,51 @@ html[data-theme="dark"] .clean-chart-legend{color:#9bb0b8}
 #activity-view .table-panel[aria-labelledby="activity-title"]::-webkit-scrollbar-corner{
   background:#14252e;
 }
+
+/* Compact investment entry and page-level return-to-top control */
+.investment-form-toggle{margin:0 0 10px;border-color:#2b9b9a;background:linear-gradient(115deg,#22bca9,#17859b);color:#fff;box-shadow:0 5px 14px rgba(22,151,151,.18)}
+.investment-form-toggle:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.scroll-top-button{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));z-index:1200;display:grid;width:50px;height:50px;place-items:center;border:1px solid rgba(255,255,255,.52);border-radius:18px;background:linear-gradient(145deg,#26d7ba,#188c9e 68%,#e9ad45);box-shadow:0 9px 25px rgba(12,92,102,.32),inset 0 1px 0 rgba(255,255,255,.35);color:#fff;font:900 25px/1 'Segoe UI',sans-serif;cursor:pointer;transition:transform .18s ease,filter .18s ease,box-shadow .18s ease}
+.scroll-top-button:hover{transform:translateY(-3px);filter:brightness(1.1);box-shadow:0 12px 30px rgba(12,92,102,.4),0 0 0 4px rgba(43,207,186,.13)}
+.scroll-top-button:focus-visible{outline:3px solid #f2bd55;outline-offset:3px}
+.scroll-top-button[hidden]{display:none}
+.table-container{scrollbar-width:thin;scrollbar-color:#35d9bb #14252e}
+.table-container::-webkit-scrollbar{width:12px;height:12px}
+.table-container::-webkit-scrollbar-track{border:1px solid rgba(123,160,174,.16);border-radius:999px;background:#14252e}
+.table-container::-webkit-scrollbar-thumb{border:3px solid transparent;border-radius:999px;background:linear-gradient(180deg,#40e4c7,#21b9b4 52%,#f3bd55);background-clip:padding-box}
+.table-container::-webkit-scrollbar-thumb:hover{filter:brightness(1.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.34),0 0 10px rgba(53,217,187,.32)}
+@media(max-width:650px){
+  /* Keep each table heading and its actions outside the independently scrollable table area. */
+  #sales-view .table-panel[aria-labelledby="table-title"],
+  #investment-view .table-panel[aria-labelledby="investment-table-title"],
+  #wallet-view .table-panel[aria-labelledby="wallet-table-title"],
+  #activity-view .table-panel[aria-labelledby="activity-title"]{
+    max-height:none;
+    overflow:visible;
+    overscroll-behavior:auto;
+    scrollbar-gutter:auto;
+  }
+  #investment-view .investment-form,#wallet-view .wallet-form{max-height:none;overflow:visible;scrollbar-gutter:auto}
+  #sales-view .table-panel[aria-labelledby="table-title"]>.table-container,
+  #investment-view .investment-table-wrap,
+  #wallet-view .wallet-table-wrap,
+  #activity-view .activity-table-wrap{
+    max-height:min(42vh,380px);
+    overflow:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-gutter:stable;
+    touch-action:pan-x pan-y;
+  }
+  #sales-view .table-panel[aria-labelledby="table-title"]>.table-container table{min-width:680px}
+  #investment-view .investment-table-wrap table{min-width:980px}
+  #wallet-view .wallet-table-wrap table{min-width:660px}
+  #activity-view .activity-table-wrap table{min-width:960px}
+  #sales-view .sales-table-heading{align-items:stretch;flex-direction:column}
+  #sales-view .sales-table-heading .table-heading-actions{display:grid;grid-template-columns:minmax(0,1fr);width:100%;max-width:none;gap:7px}
+  #sales-view .sales-table-heading .table-heading-actions .button{width:100%;min-height:42px;grid-column:auto;padding-inline:12px;font-size:12px}
+  #investment-view .table-heading,#wallet-view .table-heading,#activity-view .table-heading{align-items:flex-start}
+  #investment-view .table-heading>.button,#wallet-view .table-heading>.button,#activity-view .table-heading>.button{flex:0 0 auto;min-height:40px;white-space:nowrap}
+  .investment-form-toggle{width:100%;min-height:44px;justify-content:center}
+  .scroll-top-button{right:max(13px,env(safe-area-inset-right));bottom:max(15px,env(safe-area-inset-bottom));width:48px;height:48px;border-radius:17px}
+}
