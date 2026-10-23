@@ -1449,3 +1449,9 @@ html[data-theme="dark"] .clean-chart-legend{color:#9bb0b8}
   .investment-form-toggle{width:100%;min-height:44px;justify-content:center}
   .scroll-top-button{right:max(13px,env(safe-area-inset-right));bottom:max(15px,env(safe-area-inset-bottom));width:48px;height:48px;border-radius:17px}
 }
+
+/* Pin table headers to the top edge of every independently scrolling table. */
+.table-container{position:relative;isolation:isolate}
+.table-container thead{position:sticky;top:0;z-index:30}
+.table-container thead th{position:sticky!important;top:0!important;z-index:31!important;background-clip:padding-box;box-shadow:0 1px 0 rgba(15,35,44,.28)}
+html[data-theme="dark"] .table-container thead th{box-shadow:0 1px 0 rgba(0,0,0,.42)}
