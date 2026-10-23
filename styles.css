@@ -665,3 +665,14 @@ html[data-theme="dark"] .summary-add-sale{animation-name:action-button-glow}
   .chart-y-axis{min-width:72px}
   .main-tab{font-size:10px}
 }
+
+/* To-fresco brand lockup: expressive color, confident type, compact mobile fit. */
+.brand-kicker{display:flex;align-items:center;gap:8px;margin:0 0 5px;color:#b47c1e;font-size:8px;font-weight:850;letter-spacing:2.25px;text-transform:uppercase}
+.brand-kicker::after{width:30px;height:1px;background:linear-gradient(90deg,#e8b64b,rgba(232,182,75,0));content:''}
+.brand-name{margin:0;font-family:'Trebuchet MS','Segoe UI',Arial,sans-serif;font-size:40px;font-weight:900;letter-spacing:-1.9px;line-height:.98;background:linear-gradient(105deg,#087c9e 0%,#10aebe 48%,#35b879 100%);background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 8px rgba(20,145,163,.17))}
+.brand-lockup .header-copy{margin-top:7px;color:#6e8794;font-size:12px}
+html[data-theme="dark"] .brand-kicker{color:#e1b85d}
+html[data-theme="dark"] .brand-name{background-image:linear-gradient(105deg,#67ddf3 0%,#42d8c0 52%,#8be276 100%);filter:drop-shadow(0 0 13px rgba(53,211,195,.2))}
+html[data-theme="dark"] .brand-lockup .header-copy{color:#9bb5bf}
+@media(max-width:760px){.brand-name{font-size:clamp(33px,7vw,38px)}}
+@media(max-width:560px){.brand-name{font-size:32px;letter-spacing:-1.2px}.brand-kicker{font-size:7px;letter-spacing:1.8px}.brand-lockup .header-copy{max-width:31ch;font-size:10px;line-height:1.45}}
