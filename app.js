@@ -75,6 +75,34 @@ authPanel.after(accessGate);
 const accessGateTitle = accessGate.querySelector('#access-gate-title');
 const accessGateCopy = accessGate.querySelector('#access-gate-copy');
 const accessGateRefresh = accessGate.querySelector('#access-gate-refresh');
+const accessPlanControls = document.createElement('div');
+accessPlanControls.className = 'access-plan-controls';
+accessPlanControls.innerHTML = '<label for="access-plan-select">Plan de acceso<select id="access-plan-select"><option value="monthly">Mensual</option><option value="quarterly">Trimestral</option><option value="semiannual">Semestral</option><option value="annual">Anual</option></select></label><button id="access-plan-request" class="button" type="button">Activar plan o renovar</button><p id="access-plan-message" class="message" role="status"></p>';
+accessGate.append(accessPlanControls);
+const accessPlanSelect = accessPlanControls.querySelector('#access-plan-select');
+const accessPlanRequest = accessPlanControls.querySelector('#access-plan-request');
+const accessPlanMessage = accessPlanControls.querySelector('#access-plan-message');
+const accountAccessBadge = document.createElement('span');
+accountAccessBadge.id = 'account-access-badge';
+accountAccessBadge.className = 'access-status';
+accountAccessBadge.hidden = true;
+const accountAccessExpiry = document.createElement('span');
+accountAccessExpiry.id = 'account-access-expiry';
+accountAccessExpiry.className = 'account-access-expiry';
+accountAccessExpiry.hidden = true;
+const accountPlanSelect = document.createElement('select');
+accountPlanSelect.id = 'account-plan-select';
+accountPlanSelect.className = 'account-plan-select';
+accountPlanSelect.setAttribute('aria-label', 'Plan a solicitar');
+accountPlanSelect.innerHTML = '<option value="monthly">Mensual</option><option value="quarterly">Trimestral</option><option value="semiannual">Semestral</option><option value="annual">Anual</option>';
+accountPlanSelect.hidden = true;
+const accountPlanButton = document.createElement('button');
+accountPlanButton.id = 'account-plan-button';
+accountPlanButton.type = 'button';
+accountPlanButton.className = 'button button-light account-plan-button';
+accountPlanButton.textContent = 'Activar plan o renovar';
+accountPlanButton.hidden = true;
+document.querySelector('#user-email').after(accountAccessBadge, accountAccessExpiry, accountPlanSelect, accountPlanButton);
 const accessNotice = document.createElement('p');
 accessNotice.id = 'access-approved-notice';
 accessNotice.className = 'access-approved-notice';
@@ -99,7 +127,7 @@ accessAdminView.className = 'access-admin-view';
 accessAdminView.setAttribute('role', 'tabpanel');
 accessAdminView.setAttribute('aria-labelledby', 'access-admin-tab');
 accessAdminView.hidden = true;
-accessAdminView.innerHTML = '<section class="panel access-admin-panel"><div class="table-heading"><div><p class="eyebrow">CONTROL DE CUENTAS</p><h2>Acceso de operadores</h2><span class="record-indicator"><span class="online-dot"></span><span id="access-admin-count">Cargando solicitudes</span></span></div><button id="access-admin-refresh" class="button button-light" type="button">↻ Actualizar</button></div><p class="access-admin-note">Las cuentas nuevas no ven el sitio hasta que las actives. Pausar o denegar revoca el acceso a los datos.</p><div class="table-container access-admin-table-wrap"><table><thead><tr><th>Usuario</th><th>Solicitud</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="access-requests-body"><tr><td colspan="4" class="loading">Cargando solicitudes…</td></tr></tbody></table></div><p id="access-admin-message" class="message" role="status"></p></section>';
+accessAdminView.innerHTML = '<section class="panel access-admin-panel"><div class="table-heading"><div><p class="eyebrow">CONTROL DE CUENTAS Y PLANES</p><h2>Acceso de operadores</h2><span class="record-indicator"><span class="online-dot"></span><span id="access-admin-count">Cargando solicitudes</span></span></div><button id="access-admin-refresh" class="button button-light" type="button">↻ Actualizar</button></div><p class="access-admin-note">La prueba gratis empieza al activar la cuenta y dura 7 días. Al vencer el plan, el acceso a los datos se bloquea automáticamente. Confirma el pago antes de activar o renovar un plan.</p><div class="table-container access-admin-table-wrap"><table><thead><tr><th>Usuario</th><th>Solicitud</th><th>Plan actual / solicitado</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="access-requests-body"><tr><td colspan="6" class="loading">Cargando solicitudes…</td></tr></tbody></table></div><p id="access-admin-message" class="message" role="status"></p></section>';
 appPanel.append(accessAdminView);
 const accessRequestsBody = accessAdminView.querySelector('#access-requests-body');
 const accessAdminCount = accessAdminView.querySelector('#access-admin-count');
@@ -118,6 +146,8 @@ function setAuthMode(mode) {
 }
 authModeToggle.addEventListener('click', () => setAuthMode(authMode === 'login' ? 'register' : 'login'));
 accessGateRefresh.addEventListener('click', () => refreshAccessStatus());
+accessPlanRequest.addEventListener('click', () => requestAccessPlan(accessPlanSelect.value));
+accountPlanButton.addEventListener('click', () => requestAccessPlan(accountPlanSelect.value));
 document.querySelector('#access-admin-refresh').addEventListener('click', () => loadAccessRequests());
 accessRequestsBody.addEventListener('click', (event) => handleAccessAction(event));
 
@@ -145,6 +175,9 @@ let currentUser;
 let businessOwnerId = null;
 let businessRole = 'unknown';
 let businessAccessStatus = 'unknown';
+let businessAccessPlan = null;
+let businessAccessExpiresAt = null;
+let businessRequestedPlan = null;
 let accessMonitorTimer = null;
 let accessMonitorBusy = false;
 let monthKeys = [];
@@ -187,10 +220,13 @@ async function loadUserAccess(user) {
     businessOwnerId = OWNER_ACCOUNT_ID;
     businessRole = 'owner';
     businessAccessStatus = 'active';
+    businessAccessPlan = null;
+    businessAccessExpiresAt = null;
+    businessRequestedPlan = null;
     return { status: businessAccessStatus, role: businessRole };
   }
   const { data, error } = await supabase.from('business_user_access')
-    .select('business_owner_id, role, status, email').eq('user_id', user.id).maybeSingle();
+    .select('business_owner_id, role, status, email, plan, expires_at, requested_plan').eq('user_id', user.id).maybeSingle();
   if (error) {
     businessOwnerId = null;
     businessRole = 'sales_operator';
@@ -204,9 +240,56 @@ async function loadUserAccess(user) {
     return { status: businessAccessStatus, role: businessRole };
   }
   businessRole = data.role;
-  businessAccessStatus = data.status;
-  businessOwnerId = data.status === 'active' ? data.business_owner_id : null;
+  businessAccessPlan = data.plan;
+  businessAccessExpiresAt = data.expires_at;
+  businessRequestedPlan = data.requested_plan;
+  const isExpired = data.status === 'active' && data.expires_at && new Date(data.expires_at).getTime() <= Date.now();
+  businessAccessStatus = isExpired ? 'expired' : data.status;
+  businessOwnerId = businessAccessStatus === 'active' ? data.business_owner_id : null;
   return { status: businessAccessStatus, role: businessRole };
+}
+
+const planLabels = { trial: 'Prueba gratuita (7 días)', monthly: 'Mensual', quarterly: 'Trimestral', semiannual: 'Semestral', annual: 'Anual', legacy: 'Anterior' };
+
+function formatAccessDate(value) {
+  return value ? new Date(value).toLocaleDateString('es-CU', { dateStyle: 'medium' }) : 'Sin vencimiento';
+}
+
+function renderAccountAccessStatus() {
+  const label = { active: 'Activa', expired: 'Pausada · plan vencido', paused: 'Pausada', pending: 'Pendiente', denied: 'Denegada', deleted: 'Eliminada' }[businessAccessStatus];
+  accountAccessBadge.hidden = !currentUser || businessRole === 'owner' || !label;
+  accountAccessBadge.textContent = label || '';
+  accountAccessBadge.className = 'access-status access-status-' + businessAccessStatus;
+  accountAccessExpiry.hidden = !currentUser || businessRole === 'owner';
+  const expiryLabel = businessAccessPlan === 'legacy' ? 'Acceso anterior sin vencimiento'
+    : businessAccessExpiresAt ? 'Vence: ' + formatAccessDate(businessAccessExpiresAt)
+      : businessAccessStatus === 'pending' ? 'Prueba gratis: 7 días desde la activación' : '';
+  accountAccessExpiry.textContent = expiryLabel + (businessRequestedPlan ? ' · Solicitud pendiente: ' + (planLabels[businessRequestedPlan] || businessRequestedPlan) : '');
+  accountPlanButton.hidden = !currentUser || businessRole === 'owner';
+  accountPlanSelect.hidden = accountPlanButton.hidden;
+  accountPlanButton.disabled = ['deleted', 'denied', 'pending'].includes(businessAccessStatus);
+  accountPlanSelect.disabled = accountPlanButton.disabled;
+  if (businessRequestedPlan) { accessPlanSelect.value = businessRequestedPlan; accountPlanSelect.value = businessRequestedPlan; }
+  accountPlanButton.title = accountPlanButton.disabled ? 'El propietario debe activar primero esta cuenta.' : 'Solicitar activación o renovación del plan';
+  accessPlanControls.hidden = true;
+  if (businessRequestedPlan) accessPlanSelect.value = businessRequestedPlan;
+  setMessage(accessPlanMessage, businessRequestedPlan ? 'Solicitud ' + (planLabels[businessRequestedPlan] || businessRequestedPlan) + ' enviada; falta confirmación del propietario.' : '');
+}
+
+async function requestAccessPlan(plan) {
+  if (!currentUser || !['monthly', 'quarterly', 'semiannual', 'annual'].includes(plan)) return;
+  accessPlanRequest.disabled = true;
+  accountPlanButton.disabled = true;
+  setMessage(accessPlanMessage, 'Enviando solicitud…');
+  const { error } = await supabase.rpc('request_business_plan', { p_plan: plan });
+  if (error) { setMessage(accessPlanMessage, 'No se pudo solicitar el plan: ' + error.message, 'error'); accountAccessExpiry.textContent = error.message; }
+  else {
+    businessRequestedPlan = plan;
+    setMessage(accessPlanMessage, 'Solicitud ' + planLabels[plan] + ' enviada. El propietario confirmará la activación después de verificar el pago.', 'success');
+    renderAccountAccessStatus();
+  }
+  accessPlanRequest.disabled = false;
+  accountPlanButton.disabled = false;
 }
 
 function showAccessGate() {
@@ -215,6 +298,7 @@ function showAccessGate() {
   accessGate.hidden = false;
   sessionArea.hidden = false;
   document.querySelector('#user-email').textContent = currentUser?.email ?? '';
+  renderAccountAccessStatus();
   accessAdminTab.hidden = true;
   mainTabs.classList.remove('has-owner-tab');
   document.querySelector('#activity-tab').hidden = true;
@@ -224,6 +308,12 @@ function showAccessGate() {
   } else if (businessAccessStatus === 'paused') {
     accessGateTitle.textContent = 'Acceso pausado';
     accessGateCopy.textContent = 'El propietario pausó temporalmente esta cuenta. No puedes consultar ni modificar los datos. El estado se comprobará automáticamente.';
+  } else if (businessAccessStatus === 'expired') {
+    accessGateTitle.textContent = 'Plan vencido · acceso pausado';
+    accessGateCopy.textContent = 'Tu plan venció' + (businessAccessExpiresAt ? ' el ' + formatAccessDate(businessAccessExpiresAt) : '') + '. Los datos están bloqueados hasta que solicites y el propietario confirme una renovación.';
+  } else if (businessAccessStatus === 'deleted') {
+    accessGateTitle.textContent = 'Cuenta eliminada';
+    accessGateCopy.textContent = 'El propietario eliminó el acceso de esta cuenta. Contacta con él si necesitas solicitar una cuenta nueva.';
   } else if (businessAccessStatus === 'denied') {
     accessGateTitle.textContent = 'Acceso denegado';
     accessGateCopy.textContent = 'El propietario no activó esta cuenta. Contacta con él si consideras que se trata de un error.';
@@ -270,15 +360,15 @@ function startAccessMonitor() {
 
 async function loadAccessRequests() {
   if (!currentUser || businessRole !== 'owner') return;
-  accessRequestsBody.innerHTML = '<tr><td colspan="4" class="loading">Cargando solicitudes…</td></tr>';
+  accessRequestsBody.innerHTML = '<tr><td colspan="6" class="loading">Cargando solicitudes…</td></tr>';
   setMessage(accessAdminMessage);
   const { data, error } = await supabase.from('business_user_access')
-    .select('user_id, email, role, status, requested_at, reviewed_at')
+    .select('user_id, email, role, status, plan, expires_at, requested_plan, requested_plan_at, requested_at, reviewed_at')
     .eq('business_owner_id', OWNER_ACCOUNT_ID)
     .order('requested_at', { ascending: false });
   if (error) {
     accessAdminCount.textContent = 'No disponible';
-    accessRequestsBody.innerHTML = '<tr><td colspan="4" class="loading">No se pudo cargar el control de usuarios.</td></tr>';
+    accessRequestsBody.innerHTML = '<tr><td colspan="6" class="loading">No se pudo cargar el control de usuarios.</td></tr>';
     setMessage(accessAdminMessage, `Ejecuta supabase/user-approval.sql en Supabase > SQL Editor. Error: ${error.message}`, 'error');
     return;
   }
@@ -287,19 +377,20 @@ async function loadAccessRequests() {
   if (!data.length) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 4;
+    cell.colSpan = 6;
     cell.className = 'loading';
     cell.textContent = 'Aún no hay solicitudes de operador.';
     row.append(cell);
     accessRequestsBody.append(row);
     return;
   }
-  const statusLabels = { pending: 'Pendiente', active: 'Activa', denied: 'Denegada', paused: 'Pausada' };
+  const statusLabels = { pending: 'Pendiente', active: 'Activa', denied: 'Denegada', paused: 'Pausada', deleted: 'Eliminada' };
   const actionsByStatus = {
     pending: [['active', 'Activar'], ['denied', 'Denegar']],
-    active: [['paused', 'Pausar'], ['denied', 'Denegar']],
-    paused: [['active', 'Activar'], ['denied', 'Denegar']],
-    denied: [['active', 'Activar'], ['paused', 'Pausar']],
+    active: [['active', 'Renovar'], ['paused', 'Pausar'], ['deleted', 'Eliminar']],
+    paused: [['active', 'Activar plan'], ['deleted', 'Eliminar']],
+    denied: [['active', 'Activar prueba'], ['deleted', 'Eliminar']],
+    deleted: [],
   };
   for (const item of data) {
     const row = document.createElement('tr');
@@ -310,12 +401,29 @@ async function loadAccessRequests() {
     dateCell.textContent = new Date(item.requested_at).toLocaleString('es-CU', { dateStyle: 'short', timeStyle: 'short' });
     const statusCell = document.createElement('td');
     const status = document.createElement('span');
-    status.className = `access-status access-status-${item.status}`;
-    status.textContent = statusLabels[item.status] || item.status;
+    const isExpired = item.status === 'active' && item.expires_at && new Date(item.expires_at).getTime() <= Date.now();
+    status.className = 'access-status access-status-' + (isExpired ? 'expired' : item.status);
+    status.textContent = isExpired ? 'Vencida · bloqueada' : statusLabels[item.status] || item.status;
     statusCell.append(status);
+    const planCell = document.createElement('td');
+    const activePlan = planLabels[item.plan] || 'Sin plan';
+    const requestedPlan = item.requested_plan ? ' · Solicita: ' + (planLabels[item.requested_plan] || item.requested_plan) : '';
+    planCell.textContent = activePlan + requestedPlan;
+    const expiryCell = document.createElement('td');
+    const expired = item.status === 'active' && item.expires_at && new Date(item.expires_at).getTime() <= Date.now();
+    expiryCell.textContent = item.expires_at ? formatAccessDate(item.expires_at) + (expired ? ' · vencida' : '') : item.status === 'active' ? 'Sin vencimiento' : '—';
     const actionsCell = document.createElement('td');
     const actions = document.createElement('div');
     actions.className = 'access-row-actions';
+    if ((actionsByStatus[item.status] || []).some(([nextStatus]) => nextStatus === 'active')) {
+      const planChoice = document.createElement('select');
+      planChoice.className = 'access-owner-plan-select';
+      planChoice.setAttribute('aria-label', 'Plan para ' + item.email);
+      planChoice.innerHTML = '<option value="">Prueba / conservar</option><option value="monthly">Mensual</option><option value="quarterly">Trimestral</option><option value="semiannual">Semestral</option><option value="annual">Anual</option>';
+      if (item.requested_plan) planChoice.value = item.requested_plan;
+      else if (item.plan && item.plan !== 'trial' && item.plan !== 'legacy') planChoice.value = item.plan;
+      actions.append(planChoice);
+    }
     for (const [nextStatus, label] of actionsByStatus[item.status] || []) {
       const button = document.createElement('button');
       button.type = 'button';
@@ -326,7 +434,7 @@ async function loadAccessRequests() {
       actions.append(button);
     }
     actionsCell.append(actions);
-    row.append(emailCell, dateCell, statusCell, actionsCell);
+    row.append(emailCell, dateCell, planCell, expiryCell, statusCell, actionsCell);
     accessRequestsBody.append(row);
   }
 }
@@ -339,19 +447,21 @@ async function handleAccessAction(event) {
     active: '¿Activar esta cuenta? El operador podrá ver y modificar los datos del negocio.',
     denied: '¿Denegar esta solicitud? La cuenta no podrá entrar al sitio.',
     paused: '¿Pausar esta cuenta? Se revocará su acceso a los datos.',
+    deleted: '¿Eliminar el acceso de esta cuenta? Se bloquearán sus datos y quedará marcada como eliminada; sus registros se conservan.',
   }[status];
   if (!window.confirm(confirmation)) return;
   button.disabled = true;
   const { error } = await supabase.rpc('review_business_user', {
     p_user_id: button.dataset.userId,
     p_status: status,
+    p_plan: button.closest('tr').querySelector('.access-owner-plan-select')?.value || null,
   });
   if (error) {
     setMessage(accessAdminMessage, `No se pudo actualizar el acceso: ${error.message}`, 'error');
     button.disabled = false;
     return;
   }
-  setMessage(accessAdminMessage, `Estado actualizado: ${{ active: 'activa', denied: 'denegada', paused: 'pausada' }[status]}.`, 'success');
+  setMessage(accessAdminMessage, 'Estado actualizado: ' + { active: 'activa / plan renovado', denied: 'denegada', paused: 'pausada', deleted: 'eliminada' }[status] + '.', 'success');
   await loadAccessRequests();
 }
 
@@ -1640,6 +1750,7 @@ async function showSignedIn(user, previousAccessStatus = null) {
   appPanel.hidden = false;
   sessionArea.hidden = false;
   document.querySelector('#user-email').textContent = user.email ?? '';
+  renderAccountAccessStatus();
   document.querySelector('#activity-tab').hidden = businessRole !== 'owner';
   accessAdminTab.hidden = businessRole !== 'owner';
   mainTabs.classList.toggle('has-owner-tab', businessRole === 'owner');
@@ -1673,6 +1784,13 @@ function showSignedOut() {
   businessOwnerId = null;
   businessRole = 'unknown';
   businessAccessStatus = 'unknown';
+  businessAccessPlan = null;
+  businessAccessExpiresAt = null;
+  businessRequestedPlan = null;
+  accountAccessBadge.hidden = true;
+  accountAccessExpiry.hidden = true;
+  accountPlanSelect.hidden = true;
+  accountPlanButton.hidden = true;
   accessGate.hidden = true;
   accessAdminView.hidden = true;
   accessAdminTab.hidden = true;

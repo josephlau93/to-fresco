@@ -1500,3 +1500,30 @@ html[data-theme="dark"] .access-status-paused{border-color:#715b35;background:#3
   .main-tabs.has-owner-tab{justify-content:flex-start;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#35d9bb transparent}
   .main-tabs.has-owner-tab .main-tab{flex:0 0 auto;min-width:max-content;padding-inline:11px}
 }
+
+
+/* Account plan status and renewal controls */
+.session-area{flex-wrap:wrap}
+.account-access-expiry{color:#657d89;font-size:10px;font-weight:700;white-space:nowrap}
+.account-plan-select,.access-plan-controls select,.access-owner-plan-select{min-height:36px;padding:0 28px 0 10px;border:1px solid #d7e3e9;border-radius:9px;background:#fff;color:#315368;font:inherit;font-size:11px;font-weight:750}
+.account-plan-button{min-height:36px;padding:0 11px;font-size:10px;white-space:nowrap}
+.access-status-expired{border-color:#edb0a9;background:#fff0ed;color:#a43b31}
+.access-status-deleted{border-color:#d4c6c4;background:#f3eeed;color:#71615e}
+.access-status-expired,.access-status-deleted{font-weight:850}
+.access-plan-controls{display:flex;align-items:end;justify-content:center;gap:10px;flex-wrap:wrap;margin:12px auto 0;padding:14px;border:1px solid #e2eaf0;border-radius:12px;background:linear-gradient(120deg,#f3fbfc,#fff8ec)}
+.access-plan-controls label{display:grid;gap:5px;color:#607987;font-size:10px;font-weight:800;text-align:left}
+.access-plan-controls .message{flex-basis:100%;margin:0}
+.access-admin-table-wrap table{min-width:1080px}
+.access-owner-plan-select{min-width:135px;min-height:32px}
+html[data-theme="dark"] .account-access-expiry{color:#a5bac5}
+html[data-theme="dark"] .account-plan-select,html[data-theme="dark"] .access-plan-controls select,html[data-theme="dark"] .access-owner-plan-select{border-color:#38525d;background:#13242c;color:#d4e2e7}
+html[data-theme="dark"] .access-plan-controls{border-color:#344b53;background:linear-gradient(120deg,#172c31,#30291d)}
+html[data-theme="dark"] .access-status-expired{border-color:#74443e;background:#3b2624;color:#efaaa0}
+html[data-theme="dark"] .access-status-deleted{border-color:#594a48;background:#282423;color:#c6b7b4}
+@media(max-width:650px){
+  .session-area{align-items:center;justify-content:flex-start}
+  .account-access-expiry{white-space:normal}
+  .account-plan-select{max-width:125px}
+  .access-plan-controls{align-items:stretch;flex-direction:column}
+  .access-plan-controls select,.access-plan-controls .button{width:100%}
+}
