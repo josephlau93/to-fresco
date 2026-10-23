@@ -273,10 +273,10 @@ function renderAccountAccessStatus() {
   accountAccessExpiry.textContent = expiryLabel + (businessRequestedPlan ? ' · Solicitud pendiente: ' + (planLabels[businessRequestedPlan] || businessRequestedPlan) : '');
   accountPlanButton.hidden = !currentUser || businessRole === 'owner';
   accountPlanSelect.hidden = accountPlanButton.hidden;
-  accountPlanButton.disabled = ['deleted', 'denied', 'pending'].includes(businessAccessStatus);
+  accountPlanButton.disabled = ['denied', 'pending'].includes(businessAccessStatus);
   accountPlanSelect.disabled = accountPlanButton.disabled;
   if (businessRequestedPlan) { accessPlanSelect.value = businessRequestedPlan; accountPlanSelect.value = businessRequestedPlan; }
-  accountPlanButton.title = accountPlanButton.disabled ? 'El propietario debe activar primero esta cuenta.' : 'Solicitar activación o renovación del plan';
+  accountPlanButton.title = accountPlanButton.disabled ? 'El propietario debe revisar primero la solicitud de acceso.' : 'Solicitar activación o renovación del plan';
   accessPlanControls.hidden = true;
   if (businessRequestedPlan) accessPlanSelect.value = businessRequestedPlan;
   setMessage(accessPlanMessage, businessRequestedPlan ? 'Solicitud ' + (planLabels[businessRequestedPlan] || businessRequestedPlan) + ' enviada; falta confirmación del propietario.' : '');
@@ -293,6 +293,7 @@ async function requestAccessPlan(plan) {
     businessRequestedPlan = plan;
     setMessage(accessPlanMessage, 'Solicitud ' + planLabels[plan] + ' enviada. El propietario confirmará la activación después de verificar el pago.', 'success');
     renderAccountAccessStatus();
+    if (businessAccessStatus !== 'active') showAccessGate();
   }
   accessPlanRequest.disabled = false;
   accountPlanButton.disabled = false;
@@ -319,7 +320,9 @@ function showAccessGate() {
     accessGateCopy.textContent = 'Tu plan venció' + (businessAccessExpiresAt ? ' el ' + formatAccessDate(businessAccessExpiresAt) : '') + '. Los datos están bloqueados hasta que solicites y el propietario confirme una renovación.';
   } else if (businessAccessStatus === 'deleted') {
     accessGateTitle.textContent = 'Cuenta eliminada';
-    accessGateCopy.textContent = 'El propietario eliminó el acceso de esta cuenta. Contacta con él si necesitas solicitar una cuenta nueva.';
+    accessGateCopy.textContent = businessRequestedPlan
+      ? 'Tu solicitud de ' + (planLabels[businessRequestedPlan] || businessRequestedPlan) + ' está pendiente. La cuenta seguirá bloqueada hasta que el propietario decida.'
+      : 'El propietario eliminó el acceso de esta cuenta. Puedes elegir un plan y solicitar que revise su reactivación; el acceso seguirá bloqueado hasta que decida.';
   } else if (businessAccessStatus === 'denied') {
     accessGateTitle.textContent = 'Acceso denegado';
     accessGateCopy.textContent = 'El propietario no activó esta cuenta. Contacta con él si consideras que se trata de un error.';
@@ -409,7 +412,7 @@ async function loadAccessRequests() {
     active: [['active', 'Renovar'], ['paused', 'Pausar'], ['deleted', 'Eliminar']],
     paused: [['active', 'Activar plan'], ['deleted', 'Eliminar']],
     denied: [['active', 'Activar prueba'], ['deleted', 'Eliminar']],
-    deleted: [],
+    deleted: [['active', 'Activar plan'], ['deleted', 'Denegar solicitud']],
   };
   for (const item of data) {
     const row = document.createElement('tr');
@@ -448,7 +451,8 @@ async function loadAccessRequests() {
     const actionsCell = document.createElement('td');
     const actions = document.createElement('div');
     actions.className = 'access-row-actions';
-    if ((actionsByStatus[item.status] || []).some(([nextStatus]) => nextStatus === 'active')) {
+    const rowActions = item.status === 'deleted' && !item.requested_plan ? [] : (actionsByStatus[item.status] || []);
+    if (rowActions.some(([nextStatus]) => nextStatus === 'active')) {
       const planChoice = document.createElement('select');
       planChoice.className = 'access-owner-plan-select';
       planChoice.setAttribute('aria-label', 'Plan para ' + item.email);
@@ -457,7 +461,7 @@ async function loadAccessRequests() {
       else if (item.plan && item.plan !== 'trial' && item.plan !== 'legacy') planChoice.value = item.plan;
       actions.append(planChoice);
     }
-    for (const [nextStatus, label] of actionsByStatus[item.status] || []) {
+    for (const [nextStatus, label] of rowActions) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `button button-light access-action access-action-${nextStatus}`;
@@ -483,7 +487,9 @@ async function handleAccessAction(event) {
     active: '¿Activar esta cuenta? El operador podrá ver y modificar los datos del negocio.',
     denied: '¿Denegar esta solicitud? La cuenta no podrá entrar al sitio.',
     paused: '¿Pausar esta cuenta? Se revocará su acceso a los datos.',
-    deleted: '¿Eliminar el acceso de esta cuenta? Se bloquearán sus datos y quedará marcada como eliminada; sus registros se conservan.',
+    deleted: button.closest('tr').querySelector('.access-status-deleted') && button.textContent === 'Denegar solicitud'
+      ? '¿Denegar la solicitud de reactivación? La cuenta permanecerá eliminada y el usuario seguirá sin acceso.'
+      : '¿Eliminar el acceso de esta cuenta? Se bloquearán sus datos y quedará marcada como eliminada; sus registros se conservan.',
   }[status];
   if (!window.confirm(confirmation)) return;
   button.disabled = true;
