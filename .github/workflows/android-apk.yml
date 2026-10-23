@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build-apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -26,9 +26,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
 
       - name: Install Capacitor and generate Android project
         run: |
