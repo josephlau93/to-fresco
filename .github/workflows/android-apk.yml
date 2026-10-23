@@ -29,9 +29,11 @@ jobs:
 
       - name: Install Capacitor and generate Android project
         run: |
+          mkdir -p www
+          cp -R index.html styles.css app.js pwa.js manifest.json icon-192.png icon-512.png icons assets www/
           npm init -y
           npm install @capacitor/core@^8 @capacitor/cli@^8 @capacitor/android@^8
-          npx cap init "To-fresco" com.tofresco.app --web-dir .
+          npx cap init "To-fresco" com.tofresco.app --web-dir www
           npx cap add android
 
       - name: Build debug APK
